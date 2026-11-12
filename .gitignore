@@ -1,22 +1,38 @@
-# Dependencies
-node_modules/
-**/node_modules/
-
-# Environment variables (CỰC KỲ QUAN TRỌNG: Không đẩy key lên Git)
+# 1. Bảo mật: Chặn tuyệt đối các file chứa API Key và Private Key ví
 .env
-.env.local
+.env.*
 **/.env
 **/.env.*
+!.env.example
+**/secrets.json
 
-# Build outputs
+# 2. Thư viện cài đặt (Node.js / Python)
+node_modules/
+**/node_modules/
+venv/
+.venv/
+__pycache__/
+
+# 3. File biên dịch Smart Contract (Hardhat / Foundry)
+artifacts/
+cache/
+typechain/
+typechain-types/
+out/
+**/artifacts/
+**/cache/
+
+# 4. File build giao diện (React / Next.js / Vite)
+.next/
 dist/
 build/
-.next/
-out/
-cache/
-artifacts/
+**/.next/
+**/dist/
+**/build/
 
-# OS & IDE files
+# 5. File hệ thống & IDE
 .DS_Store
+Thumbs.db
 .vscode/
 .idea/
+*.log
