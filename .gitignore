@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment variables (CỰC KỲ QUAN TRỌNG: Không đẩy key lên Git)
+.env
+.env.local
+**/.env
+**/.env.*
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+cache/
+artifacts/
+
+# OS & IDE files
+.DS_Store
+.vscode/
+.idea/

@@ -1,0 +1,84 @@
+{
+  "targetContract": {
+    "address": "0x5462D6Bcf9E7C030364d276d493a7F9D0388d754",
+    "network": "Avalanche Fuji Testnet",
+    "chainId": 43113,
+    "tvlAvax": "125.5",
+    "tvlUsd": 3514.00,
+    "verified": true
+  },
+  "summary": {
+    "totalVulnerabilities": 3,
+    "criticalCount": 1,
+    "highCount": 1,
+    "mediumCount": 1,
+    "compositeRiskScore": 84.5
+  },
+  "findings": [
+    {
+      "id": "VULN-001",
+      "title": "Unchecked Reentrancy in withdraw() Function",
+      "function": "withdraw(uint256 amount)",
+      "visibility": "external",
+      "modifiers": [],
+      "scores": {
+        "exploitability": 95,
+        "exposure": 100,
+        "assetImpact": 90,
+        "priorityScore": 95.0
+      },
+      "severity": "CRITICAL",
+      "description": "The function performs an external transfer of native AVAX before updating the user balance mapping, enabling cross-function reentrancy.",
+      "liveContext": {
+        "fundsAtRisk": "125.5 AVAX",
+        "isPubliclyCallable": true
+      },
+      "remediation": "Apply the Checks-Effects-Interactions pattern or inherit OpenZeppelin ReentrancyGuard nonReentrant modifier."
+    },
+    {
+      "id": "VULN-002",
+      "title": "Missing Access Control on Emergency Drain",
+      "function": "emergencyDrain()",
+      "visibility": "public",
+      "modifiers": [],
+      "scores": {
+        "exploitability": 100,
+        "exposure": 100,
+        "assetImpact": 90,
+        "priorityScore": 97.0
+      },
+      "severity": "CRITICAL",
+      "description": "Anyone can call emergencyDrain and sweep contract balance to an arbitrary address without onlyOwner restriction.",
+      "liveContext": {
+        "fundsAtRisk": "125.5 AVAX",
+        "isPubliclyCallable": true
+      },
+      "remediation": "Add 'onlyOwner' modifier to emergencyDrain()."
+    },
+    {
+      "id": "VULN-003",
+      "title": "Floating Pragma & Outdated Compiler Version",
+      "function": "Global",
+      "visibility": "n/a",
+      "modifiers": [],
+      "scores": {
+        "exploitability": 10,
+        "exposure": 10,
+        "assetImpact": 15,
+        "priorityScore": 11.5
+      },
+      "severity": "LOW",
+      "description": "Pragma is set to ^0.8.0 instead of locking to a tested compiler version.",
+      "liveContext": {
+        "fundsAtRisk": "0 AVAX",
+        "isPubliclyCallable": false
+      },
+      "remediation": "Lock compiler version to exactly pragma solidity 0.8.20;"
+    }
+  ],
+  "attestation": {
+    "registryContract": "0x0000000000000000000000000000000000000000",
+    "reportHash": "0xa6f8c4e58b1086e3fdf7183e29f52f4167e43697921a8f98c76fa968e734bc1a",
+    "status": "READY_TO_ATTEST"
+  }
+}
