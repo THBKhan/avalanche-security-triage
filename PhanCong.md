@@ -9,194 +9,219 @@
 ## 1. 🎯 Tổng Quan Mục Tiêu & Cơ Chế Lõi
 
 ### 1.1. Mục tiêu dự án
-Giải quyết triệt để vấn đề **"Alert Fatigue"** (ngợp cảnh báo bảo mật) trong phát triển Web3. Hệ thống kết hợp phân tích mã tĩnh (Static/AST), truy vấn trực tiếp số dư tài sản trên **Avalanche C-Chain / Fuji RPC**, và suy luận logic từ **AI Agent** để ưu tiên xử lý các lỗ hổng thực sự đe dọa dòng tiền thay vì những cảnh báo lý thuyết suông.
+
+Dự án hướng đến giảm **Alert Fatigue** (quá tải cảnh báo bảo mật) trong phát triển Web3. Hệ thống kết hợp phân tích mã nguồn tĩnh/AST, thông tin ngữ cảnh on-chain và AI để xếp hạng phát hiện theo mức độ rủi ro thực tế. Kết quả phân tích cần có giải thích, mức độ ưu tiên và gợi ý khắc phục để đội phát triển xử lý vấn đề quan trọng trước.
 
 ### 1.2. Công thức tính điểm ưu tiên (Tri-Pillar Priority Score)
 
 $$\text{Priority Score} = (0.4 \times \text{Exploitability}) + (0.3 \times \text{Exposure}) + (0.3 \times \text{Asset Impact})$$
 
-*Tất cả trọng số thành phần đều được chuẩn hóa về thang điểm $0 - 100$:*
+*Tất cả điểm thành phần được chuẩn hóa về thang điểm 0–100.*
 
-| Trụ cột (Pillar) | Trọng số | Định nghĩa kỹ thuật | Nguồn dữ liệu & Cơ chế thẩm định |
+| Trụ cột (Pillar) | Trọng số | Định nghĩa kỹ thuật | Nguồn dữ liệu & cơ chế thẩm định |
 | :--- | :---: | :--- | :--- |
-| **Exploitability** | **40%** | Mức độ khả thi khi hacker kích hoạt lỗi trên thực tế | Phân tích AST, điều kiện rẽ nhánh và Prompt LLM thẩm định đường dẫn tấn công (Attack Vector). |
-| **Exposure** | **30%** | Độ phơi lộ bề mặt tấn công của hàm chứa lỗi | Kiểm tra modifier: `external`/`public` không kiểm soát (100đ) vs `onlyOwner`/`whenNotPaused` (10-20đ). |
-| **Asset Impact** | **30%** | Giá trị tài sản thực tế có thể bị rút cạn (TVL) | Gọi RPC Avalanche Fuji (`eth_getBalance`, token balance) lấy lượng AVAX/Token đang bị khóa trong contract. |
+| **Exploitability** | **40%** | Mức độ khả thi để một điều kiện lỗi có thể dẫn đến tác động bảo mật | AST, luồng điều khiển, điều kiện gọi hàm và đánh giá có kiểm chứng; AI chỉ hỗ trợ phân tích, không tự thực thi giao dịch |
+| **Exposure** | **30%** | Mức độ có thể tiếp cận của hàm hoặc đường đi chứa phát hiện | Visibility, modifier, quyền truy cập và trạng thái kiểm soát như `onlyOwner`/`whenNotPaused` |
+| **Asset Impact** | **30%** | Mức độ tài sản có thể chịu ảnh hưởng theo dữ liệu sẵn có | Ngữ cảnh RPC đọc công khai, gồm số dư native/token khi truy cập được; ghi rõ dữ liệu thiếu hoặc không xác minh được |
 
-### 1.3. Tính năng ghi nhận On-Chain (Audit Attestation)
-Sau khi AI tính toán xong báo cáo, nhà phát triển có thể dùng ví Web3 ghi trực tiếp mã băm của báo cáo (`reportHash`) và điểm rủi ro (`priorityScore`) vào smart contract **`AvaTriageRegistry.sol`** trên Avalanche Fuji để tạo bằng chứng kiểm định minh bạch, bất biến.
+### 1.3. Ghi nhận On-Chain (Audit Attestation)
+
+Sau khi xem xét báo cáo, người dùng có thể dùng ví Web3 ghi `reportHash` và `priorityScore` lên registry trên Avalanche Fuji. Chỉ gửi giao dịch sau khi người dùng chủ động xác nhận trong ví. Không đưa private key hoặc seed phrase vào ứng dụng.
+
+### 1.4. Nguyên tắc an toàn cho dữ liệu và mẫu kiểm thử
+
+- Mọi kiểm tra chỉ thực hiện trên mã nguồn do người dùng cung cấp hoặc địa chỉ mà người dùng được phép đánh giá.
+- Contract mẫu có lỗi (nếu cần để kiểm thử phát hiện) chỉ chạy trong môi trường local/test cô lập. Không triển khai hoặc nạp tiền thật/testnet vào mẫu cố ý có lỗ hổng.
+- Các truy vấn Fuji chỉ đọc dữ liệu công khai; không tự động gọi hàm làm thay đổi trạng thái của contract mục tiêu.
+- Mọi kết quả do AI sinh ra cần được con người rà soát trước khi áp dụng.
 
 ---
 
 ## 2. 👥 Bảng Phân Công Nhiệm Vụ Chi Tiết
 
-### 2.1. Ma trận trách nhiệm (RACI Matrix)
+### 2.1. Thành viên và vai trò
 
-| Đầu việc chính | TV1 (InfoSec) | TV2 (SE / Web3) | TV3 (IS / Product) |
+| Thành viên | Chuyên môn | Vai trò chính | Nhánh Git phụ trách |
+| :--- | :--- | :--- | :--- |
+| **Alexvuong2006** | An toàn thông tin (InfoSec) | Security Lead | `feat/infosec-contracts-rules` |
+| **Bạn (THBKhan)** | Kỹ thuật phần mềm (Software Engineering) | Full-stack & Web3 Lead | `feat/se-web-and-rpc` |
+| **hiedan** | Hệ thống thông tin (Information Systems) | Data, Risk Model & Product Lead | `feat/is-data-and-docs` |
+
+### 2.2. Ma trận trách nhiệm (RACI Matrix)
+
+| Đầu việc chính | Alexvuong2006 (InfoSec) | Bạn / THBKhan (Kỹ thuật phần mềm) | hiedan (Hệ thống thông tin) |
 | :--- | :---: | :---: | :---: |
-| Smart Contract & Deploy Fuji | **Accountable (A)** | Informed (I) | Consulted (C) |
-| Bộ quy tắc chấm điểm & System Prompt AI | **Accountable (A)** | Responsible (R) | Consulted (C) |
-| Avalanche RPC Reader & Core API | Consulted (C) | **Accountable (A)** | Informed (I) |
-| Giao diện Web Dashboard & Web3 Wallet | Informed (I) | **Accountable (A)** | Consulted (C) |
-| Mô hình quy đổi TVL & Mock Data JSON | Consulted (C) | Responsible (R) | **Accountable (A)** |
-| Pitch Deck, Video Demo & Tiêu chí Hackathon | Consulted (C) | Consulted (C) | **Accountable (A)** |
+| Thiết kế security rules và tiêu chí phân tích | **A/R** | C | C |
+| Thiết kế, rà soát và kiểm thử contract registry | **A/R** | C | I |
+| Contract mẫu kiểm thử cô lập | **A/R** | C | I |
+| Avalanche RPC Reader và API | C | **A/R** | I |
+| Frontend Dashboard và tích hợp ví | C | **A/R** | C |
+| Mô hình dữ liệu, Asset Impact và mock data | C | C | **A/R** |
+| Kiến trúc tài liệu, pitch deck và kịch bản demo | C | C | **A/R** |
+| Kiểm thử end-to-end và chuẩn bị bàn giao | R | R | **A** |
 
----
+> **R** = Responsible (thực hiện), **A** = Accountable (chịu trách nhiệm cuối), **C** = Consulted (tham vấn), **I** = Informed (được cập nhật).
 
-### 2.2. Chi tiết công việc từng thành viên
+### 2.3. Chi tiết công việc từng thành viên
 
-#### 🛡️ THÀNH VIÊN 1: InfoSec Lead (Chuyên ngành An toàn thông tin)
-- **Nhánh Git phụ trách:** `feat/infosec-contracts-rules`
-- **Thư mục làm việc:** `/contracts` và thư mục con `backend/rules/`
-- **Mục tiêu bàn giao:** Hợp đồng đăng ký lưu On-chain, bộ 3 contract mẫu thử nghiệm trên Fuji, cùng bộ luật và prompt cho AI.
+#### 🛡️ Alexvuong2006 — InfoSec Lead (Chuyên ngành An toàn thông tin)
 
-**Checklist công việc:**
-- [ ] **Smart Contracts:**
-  - [ ] Viết `AvaTriageRegistry.sol`: Chứa hàm `recordAttestation(address targetContract, bytes32 reportHash, uint256 priorityScore, string memory ipfsUri)`.
-  - [ ] Viết `VulnerableVault.sol` (Contract mẫu 1 - Critical): Chứa lỗi Reentrancy hàm `public withdraw()` rút cạn native AVAX.
-  - [ ] Viết `AdminBugVault.sol` (Contract mẫu 2 - Low/Medium): Chứa logic lỗi tương tự nhưng được bọc modifier `onlyOwner`.
-  - [ ] Viết `NoiseContract.sol` (Contract mẫu 3 - Noise/False Positive): Chỉ chứa các cảnh báo tĩnh vô hại (ví dụ: Floating pragma, unused local variable).
-- [ ] **Deploy & Faucet Fuji Testnet:**
-  - [ ] Viết script deploy bằng Hardhat/Foundry lên Avalanche Fuji (Chain ID: `43113`).
-  - [ ] Nạp testnet AVAX (faucet từ `faucet.avax.network`) vào `VulnerableVault.sol` (ít nhất 2 - 5 AVAX) để tạo số dư on-chain phục vụ demo thực tế.
-  - [ ] Verify mã nguồn contract trên Snowtrace Testnet và cập nhật địa chỉ contract vào file `contracts/DEPLOYED_ADDRESSES.md`.
+- **Nhánh Git:** `feat/infosec-contracts-rules`
+- **Phạm vi:** `/contracts` và phần security rules/prompt trong `/backend/rules/` (phối hợp với THBKhan khi tích hợp).
+- **Mục tiêu bàn giao:** Quy tắc phân tích và chấm điểm có giải thích; registry attestation được rà soát; bộ fixture kiểm thử bảo mật chạy trong môi trường cô lập.
+
+**Checklist:**
+
+- [ ] **Smart contract và kiểm thử bảo mật:**
+  - [ ] Xây dựng `AvaTriageRegistry.sol` với hàm ghi nhận báo cáo, ví dụ `recordAttestation(address targetContract, bytes32 reportHash, uint256 priorityScore, string memory ipfsUri)`.
+  - [ ] Tạo fixture đại diện cho các mức phát hiện khác nhau để kiểm tra khả năng phân loại; fixture có lỗi chỉ được chạy trên local chain/test harness cô lập, không triển khai lên Fuji và không nạp tài sản.
+  - [ ] Rà soát quyền truy cập, kiểm tra đầu vào, sự kiện và các trường hợp biên của registry.
+  - [ ] Viết test tự động cho registry và các quy tắc nhận diện; không dùng test để tương tác với contract ngoài phạm vi được phép.
+- [ ] **Triển khai registry:**
+  - [ ] Phối hợp với THBKhan viết và rà soát script triển khai registry lên Fuji, nếu cần cho demo.
+  - [ ] Lưu địa chỉ registry, chain ID và liên kết explorer trong `contracts/DEPLOYED_ADDRESSES.md`; không lưu khóa bí mật trong repository.
 - [ ] **Security Rules & System Prompt:**
-  - [ ] Xây dựng ma trận tính điểm `Exploitability` và `Exposure` dạng bảng điều kiện logic.
-  - [ ] Viết `system_prompt.txt` chuẩn cho LLM: Buộc AI trả về kết quả theo đúng cấu trúc JSON, giải thích rõ cơ chế tấn công và sinh đoạn mã vá lỗi dạng Diff (`- / +`).
+  - [ ] Xây dựng ma trận điều kiện chấm `Exploitability` và `Exposure`, nêu rõ giả định và giới hạn.
+  - [ ] Viết `system_prompt.txt` yêu cầu đầu ra JSON đúng schema, giải thích bằng chứng, độ tin cậy và gợi ý khắc phục dạng diff.
+  - [ ] Đặt quy tắc để AI không khẳng định phát hiện nếu thiếu bằng chứng; phân biệt dữ kiện on-chain với suy luận.
 
----
+#### 💻 Bạn (THBKhan) — Software Engineering / Full-stack & Web3 Lead (Chuyên ngành Kỹ thuật phần mềm)
 
-#### 💻 THÀNH VIÊN 2: SE / Full-stack & Web3 Lead (Chuyên ngành Kỹ thuật phần mềm)
-- **Nhánh Git phụ trách:** `feat/se-web-and-rpc`
-- **Thư mục làm việc:** `/frontend` và `/backend`
-- **Mục tiêu bàn giao:** API Server phân tích lỗ hổng hoàn chỉnh, kết nối Avalanche Fuji RPC và Dashboard hiển thị ma trận rủi ro có tích hợp ví.
+- **Nhánh Git:** `feat/se-web-and-rpc`
+- **Phạm vi:** `/frontend` và `/backend`; phối hợp với Alexvuong2006 về rules/ABI và với hiedan về schema/mock data.
+- **Mục tiêu bàn giao:** Sản phẩm chạy được từ giao diện đến API, đọc ngữ cảnh Fuji theo chế độ chỉ đọc và hỗ trợ người dùng chủ động ghi attestation.
 
-**Checklist công việc:**
+**Checklist:**
+
 - [ ] **Avalanche RPC Context Fetcher (`/backend`):**
-  - [ ] Cài đặt thư viện `viem` hoặc `ethers.js` kết nối RPC: `https://api.avax-test.network/ext/bc/C/rpc`.
-  - [ ] Xây dựng module `fetchOnChainContext(contractAddress)`:
-    - Lấy số dư native AVAX (`eth_getBalance`).
-    - Lấy bytecode contract (`eth_getCode`) để xác nhận contract đã deploy.
-    - Đọc trạng thái biến cờ khẩn cấp nếu có (`isPaused`, `owner`).
+  - [ ] Dùng `viem` hoặc `ethers.js` kết nối RPC Fuji: `https://api.avax-test.network/ext/bc/C/rpc`.
+  - [ ] Xây dựng `fetchOnChainContext(contractAddress)` để đọc số dư native (`eth_getBalance`), bytecode (`eth_getCode`) và trạng thái cần thiết nếu có ABI phù hợp.
+  - [ ] Xác thực địa chỉ, xử lý lỗi RPC, timeout và giới hạn tần suất; không gửi giao dịch đến contract mục tiêu.
 - [ ] **API Endpoint (`/backend`):**
-  - [ ] Xây dựng endpoint `POST /api/analyze`: Nhận input (Source code Solidity hoặc Địa chỉ contract trên Fuji).
-  - [ ] Ghép nối: Đọc RPC -> Gửi AST & Chain Context vào AI Prompt -> Nhận kết quả JSON -> Tính Priority Score tổng hợp theo công thức 3 trụ cột.
-- [ ] **Web Dashboard UI (`/frontend`):**
-  - [ ] Khởi tạo dự án Next.js (Tailwind CSS, Lucide icons, `@tanstack/react-query`).
-  - [ ] Sử dụng tạm `docs/mock-data.json` của TV3 để dựng giao diện ngay trong ngày 1 mà không phải đợi backend.
-  - [ ] Xây dựng bảng xếp hạng lỗi trực quan: Sắp xếp theo `Priority Score` giảm dần; hiển thị nhãn `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`.
-  - [ ] Thiết kế thanh tiến trình 3 màu đại diện cho 3 trụ cột: Exploitability (Đỏ), Exposure (Cam), Asset Impact (Tím Avalanche).
-  - [ ] Tích hợp trình xem mã vá lỗi (Diff Patch Component) làm nổi bật đoạn code sửa đổi.
-- [ ] **Tích hợp Web3 On-Chain:**
-  - [ ] Tích hợp RainbowKit / Wagmi hỗ trợ mạng Avalanche Fuji và ví Core Wallet / MetaMask.
-  - [ ] Viết nút bấm **"Attest on Avalanche Fuji"**: Gọi hàm `recordAttestation` của `AvaTriageRegistry.sol` để lưu hash báo cáo lên blockchain.
+  - [ ] Xây dựng `POST /api/analyze`, nhận mã Solidity hoặc địa chỉ contract trên Fuji theo schema đã thống nhất.
+  - [ ] Kết hợp phân tích mã, ngữ cảnh chain và security rules; trả JSON có điểm thành phần, Priority Score, bằng chứng, cảnh báo giới hạn dữ liệu và đề xuất sửa.
+  - [ ] Bảo vệ API key bằng biến môi trường; không ghi secret hoặc dữ liệu nhạy cảm vào log.
+- [ ] **Web Dashboard (`/frontend`):**
+  - [ ] Khởi tạo hoặc hoàn thiện ứng dụng Next.js với Tailwind CSS, Lucide icons và `@tanstack/react-query` nếu phù hợp với cấu trúc repo.
+  - [ ] Dùng `docs/mock-data.json` do hiedan chuẩn bị để dựng giao diện song song với backend.
+  - [ ] Hiển thị danh sách phát hiện theo Priority Score giảm dần, với nhãn `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`.
+  - [ ] Hiển thị ba thành phần điểm: Exploitability, Exposure và Asset Impact; làm rõ khi dữ liệu on-chain không khả dụng.
+  - [ ] Tích hợp trình xem diff patch; phân biệt đề xuất AI với thay đổi đã được người dùng chấp thuận.
+- [ ] **Tích hợp Web3 Attestation:**
+  - [ ] Tích hợp Wagmi/RainbowKit (hoặc giải pháp tương đương) cho Avalanche Fuji và ví Core Wallet/MetaMask.
+  - [ ] Xây dựng nút **“Attest on Avalanche Fuji”** gọi registry đã được xác nhận; hiển thị rõ nội dung giao dịch và yêu cầu người dùng xác nhận trong ví.
+  - [ ] Kiểm tra chain ID và địa chỉ registry trước khi gửi; không yêu cầu hoặc lưu private key.
+- [ ] **Tích hợp và bàn giao:**
+  - [ ] Viết test cho API, RPC reader và luồng giao diện chính.
+  - [ ] Cập nhật hướng dẫn chạy ứng dụng, cấu hình `.env.example` (chỉ tên biến, không có secret) và phối hợp deploy bản demo.
+
+#### 📊 hiedan — Data, Risk Model & Product Lead (Chuyên ngành Hệ thống thông tin)
+
+- **Nhánh Git:** `feat/is-data-and-docs`
+- **Phạm vi:** `/docs`, JSON Schema và tài liệu dự án.
+- **Mục tiêu bàn giao:** Schema dữ liệu thống nhất, mô hình Asset Impact minh bạch, tài liệu kiến trúc, pitch deck và kịch bản demo.
+
+**Checklist:**
+
+- [ ] **Mô hình dữ liệu & Mock Data:**
+  - [ ] Đề xuất thang đo phi tuyến tính từ số dư AVAX sang điểm `Asset Impact` (0–100), ghi rõ đây là mô hình demo và cần hiệu chỉnh theo bối cảnh.
+  - [ ] Hoàn thiện `docs/mock-data.json` theo schema API đã thống nhất với THBKhan.
+  - [ ] Bổ sung trường nguồn dữ liệu, thời điểm truy vấn, trạng thái thiếu dữ liệu và giải thích điểm số để người xem hiểu giới hạn của kết quả.
+- [ ] **Kiến trúc & tài liệu repository:**
+  - [ ] Viết `docs/ARCHITECTURE.md` với sơ đồ tuần tự (Sequence Diagram), sơ đồ luồng dữ liệu (Dataflow), các ranh giới tin cậy và luồng xác nhận của người dùng.
+  - [ ] Phối hợp cập nhật `README.md`: mô tả dự án, cài đặt, cấu hình, cách chạy test và liên kết registry/explorer nếu đã triển khai.
+- [ ] **Pitch Deck (7–8 slides):**
+  - [ ] Bìa: tên dự án, slogan, track và Avalanche.
+  - [ ] Problem: Alert Fatigue trong bảo mật Web3.
+  - [ ] Solution: Context-Aware Triage.
+  - [ ] Tri-Pillar Formula và cách sử dụng dữ liệu RPC.
+  - [ ] Kiến trúc hệ thống và workflow.
+  - [ ] Demo Dashboard và attestation trên Fuji.
+  - [ ] Giá trị sản phẩm, giới hạn hiện tại và roadmap mở rộng.
+- [ ] **Kịch bản & video demo (khoảng 2 phút 30 giây):**
+  - [ ] 00:00–00:30: Nêu vấn đề quá tải cảnh báo.
+  - [ ] 00:30–01:30: Phân tích mã mẫu an toàn trong demo, xem ngữ cảnh RPC đọc công khai và thứ tự ưu tiên.
+  - [ ] 01:30–02:00: Xem giải thích/diff đề xuất và xác nhận attestation bằng ví.
+  - [ ] 02:00–02:30: Mở explorer xem giao dịch registry và kết luận.
+  - [ ] Đảm bảo demo không triển khai hoặc tương tác tấn công với contract có lỗ hổng; dùng dữ liệu mẫu/fixture local khi cần.
 
 ---
 
-#### 📊 THÀNH VIÊN 3: IS / Data, Risk Model & Product Lead (Chuyên ngành Hệ thống thông tin)
-- **Nhánh Git phụ trách:** `feat/is-data-and-docs`
-- **Thư mục làm việc:** `/docs`, JSON Schema và tài liệu dự án
-- **Mục tiêu bàn giao:** Chuẩn dữ liệu `mock-data.json`, mô hình chuyển đổi TVL sang Asset Impact, tài liệu kiến trúc, Slide Pitch Deck và Kịch bản Video Demo đạt điểm tối đa.
+## 3. ⏱️ Lộ Trình Phối Hợp 3 Chặng
 
-**Checklist công việc:**
-- [ ] **Mô hình hóa dữ liệu & Mock Data:**
-  - [ ] Thiết lập bảng thang đo phi tuyến tính chuẩn hóa từ số dư AVAX sang điểm số `Asset Impact` ($0 - 100$ điểm):
-    - $0 \text{ AVAX} \rightarrow 0\text{ điểm}$
-    - $0.01 - 1 \text{ AVAX} \rightarrow 25\text{ điểm}$
-    - $1 - 10 \text{ AVAX} \rightarrow 60\text{ điểm}$
-    - $10 - 100 \text{ AVAX} \rightarrow 85\text{ điểm}$
-    - $> 100 \text{ AVAX} \rightarrow 100\text{ điểm}$
-  - [ ] Hoàn thiện file `docs/mock-data.json` chuẩn hóa 100% schema JSON API cho TV2 import vào Frontend ngay lập tức.
-- [ ] **Kiến trúc & Tài liệu Repository:**
-  - [ ] Chuẩn hóa tài liệu `docs/ARCHITECTURE.md` kèm sơ đồ tuần tự (Sequence Diagram) và sơ đồ luồng dữ liệu (Dataflow).
-  - [ ] Cập nhật `README.md` chính: Đảm bảo đầy đủ mô tả dự án, link Snowtrace contract, hướng dẫn cài đặt và video demo.
-- [ ] **Pitch Deck (7 - 8 Slides Canva/Figma):**
-  - [ ] Slide 1: Bìa (Tên dự án, Slogan, Track AI Agents & Security, Avalanche logo).
-  - [ ] Slide 2: Problem - Báo động giả gây ngợp cảnh báo (Alert Fatigue) trong bảo mật Web3.
-  - [ ] Slide 3: Solution - Hệ thống xếp hạng ưu tiên theo rủi ro thực tế (Context-Aware Triage).
-  - [ ] Slide 4: Tri-Pillar Formula & Avalanche Integration (Nhấn mạnh việc đọc RPC trực tiếp số dư AVAX on-chain).
-  - [ ] Slide 5: System Architecture & Workflow.
-  - [ ] Slide 6: Demo Showcase & On-chain Attestation trên Fuji Testnet.
-  - [ ] Slide 7: Business Value, Roadmap mở rộng sang Subnets/L1s và Avalanche Ecosystem.
-- [ ] **Kịch bản & Quay Video Demo (2 phút 30 giây):**
-  - [ ] Viết kịch bản video chi tiết đến từng giây:
-    - *00:00 - 00:30:* Nêu thực trạng quét tĩnh ra 50 cảnh báo vô dụng.
-    - *00:30 - 01:30:* Nhập địa chỉ contract `VulnerableVault.sol` trên Fuji; xem AI đọc số dư AVAX trực tiếp qua RPC và đẩy lỗi Reentrancy lên top 1 với điểm số 95+. So sánh với contract có `onlyOwner` bị hạ điểm rủi ro.
-    - *01:30 - 02:00:* Xem AI sinh code vá lỗi (Diff Patch) và bấm ví xác nhận ghi Attestation lên Avalanche Fuji.
-    - *02:00 - 02:30:* Mở Snowtrace xem giao dịch attestation thành công và kết bài.
-  - [ ] Thu âm/lồng tiếng rõ ràng, chỉnh sửa video và upload lên YouTube/Loom (chế độ Unlisted/Public).
-
----
-
-## 3. ⏱️ Lộ Trình Phối Hợp 3 Chặng (Không Nghẽn Cổ Chai)
-
-Để cả 3 thành viên làm việc song song liên tục mà không ai phải chờ đợi code của người khác, quy trình được chia thành 3 mốc bàn giao nghiêm ngặt:
+Các đầu việc được chia để ba thành viên có thể làm song song. Thời lượng dưới đây là ước tính, có thể điều chỉnh theo tiến độ thực tế.
 
 ```mermaid
 gantt
     title LỘ TRÌNH TRIỂN KHAI DỰ ÁN HACKATHON
     dateFormat  YYYY-MM-DD
-    section Chặng 1: Chuẩn Hóa
-    Chuẩn hóa JSON Mock Data (TV3)      :done, c1_1, 2026-11-12, 1d
-    Viết & Deploy Contract Fuji (TV1)    :active, c1_2, 2026-11-12, 1d
-    Khởi tạo Next.js & Đọc Mock (TV2)   :active, c1_3, 2026-11-12, 1d
-    section Chặng 2: Code Lõi & Ghép Nối
-    Xây dựng Avalanche RPC Reader (TV2) :c2_1, after c1_1, 1.5d
-    Xây dựng AI Prompt & Rules (TV1)    :c2_2, after c1_2, 1.5d
-    Viết Slide Pitch Deck (TV3)         :c2_3, after c1_1, 1.5d
-    Ghép API /api/analyze hoàn chỉnh     :c2_4, after c2_1, 1d
-    section Chặng 3: On-Chain & Đóng Gói
-    Tích hợp ví Core/MetaMask Attest    :c3_1, after c2_4, 1d
-    Kiểm thử luồng End-to-End           :c3_2, after c3_1, 0.5d
-    Quay Video Demo 2.5 phút & Nộp bài  :c3_3, after c3_2, 1d
+    section Chặng 1: Chuẩn hóa
+    Chốt schema và mock data (hiedan)          :c1_1, 2026-11-12, 1d
+    Registry và test fixture cô lập (Alex)     :c1_2, 2026-11-12, 1d
+    Khởi tạo frontend/API và đọc mock (THBKhan):c1_3, 2026-11-12, 1d
+    section Chặng 2: Code lõi và ghép nối
+    Avalanche RPC Reader (THBKhan)             :c2_1, after c1_1, 1.5d
+    Security Rules và Prompt (Alex)             :c2_2, after c1_2, 1.5d
+    Pitch Deck bản nháp (hiedan)                :c2_3, after c1_1, 1.5d
+    Hoàn thiện API /api/analyze (THBKhan)       :c2_4, after c2_1, 1d
+    section Chặng 3: Tích hợp và đóng gói
+    Tích hợp ví/attestation registry (THBKhan)  :c3_1, after c2_4, 1d
+    Kiểm thử end-to-end (cả nhóm)               :c3_2, after c3_1, 0.5d
+    Video demo và bàn giao (hiedan điều phối)   :c3_3, after c3_2, 1d
 ```
 
-### Chặng 1: Thống nhất chuẩn giao tiếp & Dựng khung độc lập (Mốc 24h đầu)
-- **TV3 bàn giao `docs/mock-data.json`:** Đây là bản "hợp đồng dữ liệu". TV2 chỉ cần nạp file này vào Next.js là có thể code 100% giao diện Dashboard, CSS và component mà không cần backend chạy được.
-- **TV1 deploy hợp đồng mẫu lên Fuji:** Viết xong `AvaTriageRegistry.sol` và `VulnerableVault.sol`, deploy lên Fuji, nạp sẵn testnet AVAX và bàn giao địa chỉ contract cùng ABI cho TV2.
-- **TV2 hoàn thành khung Frontend & Mock View:** Dựng xong trang web hiển thị bảng rủi ro lấy từ `mock-data.json`.
+### Chặng 1: Thống nhất chuẩn giao tiếp & dựng khung độc lập
 
-### Chặng 2: Triển khai logic lõi & Ghép nối API (Mốc 24h - 48h)
-- **TV1 bàn giao Prompt & Logic chấm điểm:** Bàn giao file Prompt LLM có khả năng nhận diện AST và sinh mã Diff cho TV2.
-- **TV2 ghép nối Backend:** Nối hàm gọi RPC Avalanche Fuji lấy số dư thật vào Prompt của TV1, hoàn thiện endpoint `POST /api/analyze`. Thay thế dữ liệu mock trên Frontend bằng API thực.
-- **TV3 hoàn thành Pitch Deck (bản nháp):** Thiết kế toàn bộ slide nội dung, chuẩn bị sẵn cấu trúc bài thuyết trình bám theo tiêu chí chấm giải.
+- **hiedan:** Chốt `docs/mock-data.json` và schema dữ liệu để frontend có thể phát triển độc lập.
+- **Alexvuong2006:** Xây registry và fixture kiểm thử cô lập; bàn giao ABI/schema và ghi chú bảo mật.
+- **THBKhan:** Dựng khung frontend/API, đọc mock data và thống nhất hợp đồng API với hai thành viên.
 
-### Chặng 3: Tích hợp On-Chain, Kiểm thử & Đóng gói sản phẩm (Mốc 48h - Về đích)
-- **Ghép nút Web3 Attestation:** TV2 tích hợp nút bấm ký giao dịch lưu kết quả vào `AvaTriageRegistry.sol` của TV1 trên Fuji.
-- **Test E2E toàn hệ thống:** TV3 đóng vai trò người dùng/giám khảo kiểm thử toàn bộ luồng từ paste contract -> phân tích -> xem số dư AVAX -> xem diff patch -> ghi nhận on-chain.
-- **Quay video & Đóng gói nộp bài:** TV3 chỉ đạo kịch bản và quay video demo 2.5 phút; TV1 rà soát mã nguồn; TV2 deploy web lên Vercel.
+### Chặng 2: Triển khai logic lõi & ghép nối API
+
+- **Alexvuong2006:** Bàn giao security rules, tiêu chí điểm và prompt có schema đầu ra thống nhất.
+- **THBKhan:** Tích hợp RPC chỉ đọc, rules và API `POST /api/analyze`; chuyển giao diện từ mock sang API.
+- **hiedan:** Hoàn thiện mô hình dữ liệu, tài liệu kiến trúc và bản nháp pitch deck.
+
+### Chặng 3: Tích hợp, kiểm thử & đóng gói
+
+- **THBKhan:** Tích hợp ví để ghi attestation lên registry Fuji sau khi người dùng xác nhận.
+- **Cả nhóm:** Kiểm thử end-to-end từ nhập mã/địa chỉ được phép đánh giá đến xem báo cáo và attestation.
+- **hiedan:** Điều phối kịch bản/video demo; **Alexvuong2006** rà soát bảo mật; **THBKhan** chuẩn bị bản triển khai ứng dụng.
 
 ---
 
-## 4. 📐 Quy Tắc Làm Việc Nhóm Trên Git (Git Collaboration Rules)
+## 4. 📐 Quy Tắc Làm Việc Nhóm Trên Git
 
-Nhằm đảm bảo **không bao giờ xảy ra xung đột mã nguồn (Merge Conflict)** và tuân thủ tuyệt đối quy định của ban tổ chức:
+### 4.1. Quy tắc phân nhánh
 
-### 4.1. Quy tắc phân nhánh độc lập
-- Nhánh chính bảo vệ: **`main`** (Chỉ dùng để nộp bài và chứa bản phát hành ổn định, không commit trực tiếp).
-- Mỗi thành viên làm việc **100% trên nhánh riêng** của mình:
-  - InfoSec Lead: `feat/infosec-contracts-rules`
-  - Software Eng Lead: `feat/se-web-and-rpc`
-  - Data/IS Lead: `feat/is-data-and-docs`
+- Nhánh chính `main` chứa bản ổn định; không commit trực tiếp.
+- Mỗi thành viên làm việc trên nhánh phụ trách:
+  - Alexvuong2006: `feat/infosec-contracts-rules`
+  - THBKhan: `feat/se-web-and-rpc`
+  - hiedan: `feat/is-data-and-docs`
+- Mọi thay đổi được đưa vào `main` thông qua Pull Request và cần thành viên phụ trách liên quan review.
 
-### 4.2. Quy tắc phạm vi thư mục (Boundary Rule)
-- Mỗi thành viên chỉ chỉnh sửa trong thư mục được phân công:
-  - TV1 phụ trách `/contracts` và file rules logic.
-  - TV2 phụ trách `/frontend` và `/backend`.
-  - TV3 phụ trách `/docs` và tài liệu gốc.
-- Nếu cần sửa đổi chéo (ví dụ: TV2 cần ABI mới từ TV1), hãy trao đổi để người phụ trách thư mục đó commit lên nhánh của họ trước, sau đó tạo Pull Request vào `main`.
+### 4.2. Phạm vi thư mục
 
-### 4.3. Quy chuẩn Commit Message
-Sử dụng chuẩn **Conventional Commits**:
-- `feat(contracts): add AvaTriageRegistry with attestation storage`
-- `feat(backend): add avalanche rpc balance reader using viem`
-- `feat(frontend): render priority score matrix with mock data`
-- `docs(data): update mock-data schema with priority score breakdown`
-- `fix(rules): adjust exposure weight calculation for internal functions`
+- **Alexvuong2006:** `/contracts` và security rules trong `/backend/rules/`.
+- **THBKhan:** `/frontend` và `/backend` (trừ phần rules do Alex phụ trách; thay đổi chéo cần phối hợp).
+- **hiedan:** `/docs`, JSON Schema và tài liệu gốc.
+- Khi cần sửa ngoài phạm vi, trao đổi với người phụ trách trước; thống nhất schema/ABI qua Pull Request để tránh xung đột.
 
-### 4.4. Bảo mật tuyệt đối & Thể lệ cuộc thi (Zero Tolerance Checklist)
-- ❌ **TUYỆT ĐỐI KHÔNG PUSH FILE `.env`:** Toàn bộ Private Key ví deploy, Gemini/OpenAI API Key phải đặt trong `.env` và đã được chặn trong `.gitignore`. Chỉ đẩy file mẫu `.env.example` không chứa key thật.
-- ⚠️ **QUYỀN GIÁM KHẢO TRÊN GITHUB:**
-  - Nếu Repo ở chế độ **Private**, bắt buộc kiểm tra mục `Settings` -> `Collaborators` đã có username **`tuantqse90`** chưa.
-  - Nếu Repo ở chế độ **Public**, khuyến khích vẫn add để tránh lỗi quét tự động của ban giám khảo.
-- ✅ **TESTNET NẠP SẴN AVAX:** Đảm bảo các contract demo trên Fuji Testnet luôn có sẵn số dư AVAX để ban giám khảo bấm nút kiểm tra là RPC trả về số dư thực tế ngay lập tức.
+### 4.3. Quy chuẩn commit message
+
+Sử dụng Conventional Commits, ví dụ:
+
+- `feat(contracts): add attestation registry`
+- `feat(backend): add read-only avalanche rpc context`
+- `feat(frontend): render priority score matrix`
+- `docs(data): document risk score schema`
+- `fix(rules): clarify exposure scoring for restricted functions`
+
+### 4.4. Bảo mật và chuẩn bị demo
+
+- ❌ **Không commit `.env`, private key, seed phrase hoặc API key.** Dùng `.gitignore` và chỉ đưa `.env.example` không chứa secret.
+- ✅ Kiểm tra quyền truy cập repository và thêm người cần thiết theo yêu cầu của ban tổ chức.
+- ✅ Registry demo trên Fuji chỉ lưu attestation do người dùng chủ động xác nhận; kiểm tra đúng chain ID và địa chỉ contract.
+- ✅ Contract fixture có lỗi chỉ chạy trong môi trường local/test cô lập; không nạp AVAX hay tài sản vào fixture và không triển khai fixture đó lên Fuji.
+- ✅ Demo dùng dữ liệu giả lập hoặc dữ liệu công khai được phép truy cập; không thực hiện giao dịch làm thay đổi trạng thái của contract bên thứ ba.
