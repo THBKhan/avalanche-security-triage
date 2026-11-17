@@ -32,3 +32,9 @@ $$\text{Priority Score} = (0.4 \times \text{Exploitability}) + (0.3 \times \text
 
 ## 🚀 Quick Start
 *(Hướng dẫn chạy local sẽ được cập nhật tại đây)*
+
+### Demo behavior (implementation contract)
+
+- An address-only request returns on-chain context, without a vulnerability analysis or `priorityScore`. **Attest on Avalanche Fuji** is disabled for this result by design; this is not a demo error. Bytecode is not equivalent to Solidity source.
+- Attestation requires a report with a valid integer score and hash, plus a valid target address and registry configuration. Backend finalizes the score before hashing; the UI uses the saved report snapshot and never reruns analysis to prepare an attestation.
+- See the [SE Web & RPC implementation plan](./docs/SE_WEB_RPC_IMPLEMENTATION_PLAN.md) for the agreed workflow and completion checklist. These behaviors describe the implementation requirements; the demo setup is still being documented.

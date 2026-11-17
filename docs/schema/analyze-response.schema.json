@@ -1,0 +1,463 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://avalanche-security-triage/schemas/analyze-response.schema.json",
+  "title": "AnalyzeResponse",
+  "description": "Response schema for POST /api/analyze endpoint",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/SourceAnalysisSuccessResponse"
+    },
+    {
+      "$ref": "#/$defs/ContextOnlySuccessResponse"
+    },
+    {
+      "$ref": "#/$defs/ApiErrorResponse"
+    }
+  ],
+  "$defs": {
+    "PillarScores": {
+      "type": "object",
+      "properties": {
+        "exploitability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "exposure": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "assetImpact": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "priorityScore": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Final integer priority score computed strictly by backend according to confirmed rounding rules."
+        }
+      },
+      "required": ["exploitability", "exposure", "assetImpact", "priorityScore"],
+      "additionalProperties": false
+    },
+    "LiveFindingContext": {
+      "type": "object",
+      "description": "On-chain risk context for a specific finding. Does not force fabricated values when RPC is unavailable or address is unspecified.",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["available", "unavailable", "unspecified"]
+        },
+        "fundsAtRisk": {
+          "type": "string"
+        },
+        "isPubliclyCallable": {
+          "type": "boolean"
+        },
+        "isPaused": {
+          "type": ["boolean", "null"]
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "required": ["status"],
+      "additionalProperties": false
+    },
+    "Finding": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "ruleId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "function": {
+          "type": "string"
+        },
+        "visibility": {
+          "type": "string",
+          "enum": ["external", "public", "internal", "private", "n/a"]
+        },
+        "modifiers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "scores": {
+          "$ref": "#/$defs/PillarScores"
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW"]
+        },
+        "description": {
+          "type": "string"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["HIGH", "MEDIUM", "LOW", "INSUFFICIENT_EVIDENCE"]
+        },
+        "patchDiff": {
+          "type": "string",
+          "description": "Proposed unified diff remediation from AI model. Labeled as proposal only."
+        },
+        "liveContext": {
+          "$ref": "#/$defs/LiveFindingContext"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "function",
+        "visibility",
+        "modifiers",
+        "scores",
+        "severity",
+        "description",
+        "evidence",
+        "confidence",
+        "patchDiff",
+        "liveContext"
+      ],
+      "additionalProperties": false
+    },
+    "TargetContractContext": {
+      "type": "object",
+      "description": "On-chain state of the target contract. Scope is Avalanche Fuji Testnet (Chain ID 43113).",
+      "properties": {
+        "address": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{40}$"
+        },
+        "network": {
+          "type": "string",
+          "const": "Avalanche Fuji Testnet"
+        },
+        "chainId": {
+          "type": "integer",
+          "const": 43113
+        },
+        "balanceAvax": {
+          "type": "string"
+        },
+        "isContract": {
+          "type": "boolean"
+        },
+        "bytecodeSize": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "owner": {
+          "type": ["string", "null"],
+          "pattern": "^0x[0-9a-fA-F]{40}$"
+        },
+        "isPaused": {
+          "type": ["boolean", "null"]
+        },
+        "queriedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["available", "unavailable", "unspecified"]
+        },
+        "warning": {
+          "type": "string"
+        }
+      },
+      "required": ["status"],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "available"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "address",
+              "network",
+              "chainId",
+              "balanceAvax",
+              "isContract",
+              "bytecodeSize",
+              "queriedAt"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "unavailable"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "address",
+              "network",
+              "chainId",
+              "warning"
+            ]
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "SourceAnalysisReport": {
+      "type": "object",
+      "description": "The exact user-facing report snapshot payload that is hashed using RFC 8785 JCS Keccak-256.",
+      "properties": {
+        "targetContract": {
+          "$ref": "#/$defs/TargetContractContext"
+        },
+        "summary": {
+          "type": "object",
+          "properties": {
+            "totalVulnerabilities": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "criticalCount": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "highCount": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "mediumCount": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "lowCount": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "priorityScore": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Final report-level priority score as integer. Calculation rule across multiple findings pending Alex/hiedan confirmation."
+            }
+          },
+          "required": [
+            "totalVulnerabilities",
+            "criticalCount",
+            "highCount",
+            "mediumCount",
+            "lowCount",
+            "priorityScore"
+          ],
+          "additionalProperties": false
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Finding"
+          }
+        },
+        "queriedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["targetContract", "summary", "findings"],
+      "additionalProperties": false
+    },
+    "AttestationMetadata": {
+      "type": "object",
+      "description": "Attestation preparation metadata kept strictly OUTSIDE the hashed report payload.",
+      "properties": {
+        "reportHash": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{64}$",
+          "not": {
+            "const": "0x0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          "description": "Keccak-256 of UTF-8 RFC 8785 canonical bytes of the 'report' payload object. Must be non-zero."
+        },
+        "ipfsUri": {
+          "type": "string",
+          "maxLength": 512,
+          "description": "IPFS/Arweave storage URI. Notice: JSON Schema maxLength counts characters; backend must enforce strict <= 512 bytes in UTF-8 encoding at runtime."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["READY_TO_ATTEST", "NOT_ATTESTABLE", "DISABLED"]
+        },
+        "disabledReason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable explanation when attestation is NOT_ATTESTABLE or DISABLED."
+        }
+      },
+      "required": ["status"],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "READY_TO_ATTEST"
+              }
+            }
+          },
+          "then": {
+            "required": ["reportHash", "ipfsUri"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": ["NOT_ATTESTABLE", "DISABLED"]
+              }
+            }
+          },
+          "then": {
+            "required": ["disabledReason"]
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "SourceAnalysisSuccessResponse": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "const": "source-analysis"
+        },
+        "report": {
+          "$ref": "#/$defs/SourceAnalysisReport"
+        },
+        "attestation": {
+          "$ref": "#/$defs/AttestationMetadata"
+        }
+      },
+      "required": ["mode", "report", "attestation"],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "attestation": {
+                "properties": {
+                  "status": {
+                    "const": "READY_TO_ATTEST"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "report": {
+                "properties": {
+                  "targetContract": {
+                    "properties": {
+                      "address": {
+                        "type": "string",
+                        "pattern": "^0x[0-9a-fA-F]{40}$",
+                        "not": {
+                          "const": "0x0000000000000000000000000000000000000000"
+                        }
+                      }
+                    },
+                    "required": ["address"]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "ContextOnlySuccessResponse": {
+      "type": "object",
+      "description": "Address-only response. Returns only on-chain RPC facts. Never simulates AST, findings, scores, or reportHash.",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "const": "context-only"
+        },
+        "targetContract": {
+          "$ref": "#/$defs/TargetContractContext"
+        },
+        "attestation": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "const": "DISABLED"
+            },
+            "disabledReason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["status", "disabledReason"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["mode", "targetContract", "attestation"],
+      "additionalProperties": false
+    },
+    "ApiErrorResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "enum": [
+                "INVALID_REQUEST",
+                "INVALID_ADDRESS",
+                "INVALID_JSON",
+                "PAYLOAD_TOO_LARGE",
+                "FORBIDDEN_CORS",
+                "UPSTREAM_RPC_ERROR",
+                "RPC_TIMEOUT",
+                "RATE_LIMITED",
+                "WRONG_NETWORK",
+                "AI_MODEL_ERROR",
+                "SOURCE_ANALYSIS_NOT_IMPLEMENTED",
+                "INTERNAL_SERVER_ERROR"
+              ]
+            },
+            "message": {
+              "type": "string"
+            },
+            "details": {
+              "type": "object"
+            }
+          },
+          "required": ["code", "message"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["error"],
+      "additionalProperties": false
+    }
+  }
+}

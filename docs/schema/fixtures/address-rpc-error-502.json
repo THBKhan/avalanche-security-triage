@@ -1,0 +1,11 @@
+{
+  "error": {
+    "code": "UPSTREAM_RPC_ERROR",
+    "message": "Không thể truy vấn ngữ cảnh on-chain từ Avalanche Fuji RPC (node unreachable hoặc timeout). Vui lòng thử lại sau.",
+    "details": {
+      "targetContract": "0x5462D6Bcf9E7C030364d276d493a7F9D0388d754",
+      "chainId": 43113,
+      "rpcEndpoint": "https://api.avax-test.network/ext/bc/C/rpc"
+    }
+  }
+}
