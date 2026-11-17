@@ -1,0 +1,112 @@
+{
+  "version": "1.0.0",
+  "weights": {
+    "exploitability": 0.4,
+    "exposure": 0.3,
+    "assetImpact": 0.3
+  },
+  "severityThresholds": {
+    "CRITICAL": 80,
+    "HIGH": 60,
+    "MEDIUM": 40,
+    "LOW": 0
+  },
+  "exposureByVisibilityAndModifiers": {
+    "public_unrestricted": 100,
+    "public_whenNotPaused": 75,
+    "public_roleRestricted": 45,
+    "public_onlyOwner": 20,
+    "internal_or_private": 10,
+    "global": 10
+  },
+  "rules": [
+    {
+      "id": "RULE-REENTRANCY-001",
+      "swc": "SWC-107",
+      "title": "Unchecked Reentrancy (Checks-Effects-Interactions Violation)",
+      "defaultExploitability": 95,
+      "mitigatedBy": ["nonReentrant"],
+      "mitigatedExploitability": 15,
+      "requiredEvidence": [
+        "External call (.call, .send, .transfer, or external interface call) before state variable write",
+        "Absence of nonReentrant / mutex guard on the function"
+      ],
+      "falsePositiveExclusions": [
+        "State is updated strictly before external interaction",
+        "Function is protected by nonReentrant modifier"
+      ]
+    },
+    {
+      "id": "RULE-ACCESS-002",
+      "swc": "SWC-105",
+      "title": "Missing Access Control on Privileged Function",
+      "defaultExploitability": 100,
+      "mitigatedBy": ["onlyOwner", "onlyRole", "onlyGovernance"],
+      "mitigatedExploitability": 15,
+      "requiredEvidence": [
+        "Function transfers native AVAX/ERC20 or mutates critical admin/owner state",
+        "Visibility is public or external with no msg.sender / role check"
+      ],
+      "falsePositiveExclusions": [
+        "Function is protected by onlyOwner, AccessControl, or explicit msg.sender == owner check"
+      ]
+    },
+    {
+      "id": "RULE-TX-ORIGIN-003",
+      "swc": "SWC-115",
+      "title": "Authorization via tx.origin",
+      "defaultExploitability": 75,
+      "mitigatedBy": [],
+      "mitigatedExploitability": 75,
+      "requiredEvidence": [
+        "Use of tx.origin in require/if authorization check"
+      ],
+      "falsePositiveExclusions": [
+        "tx.origin == msg.sender used solely as an EOA check (note separately if intentional)"
+      ]
+    },
+    {
+      "id": "RULE-UNCHECKED-CALL-004",
+      "swc": "SWC-104",
+      "title": "Unchecked Low-Level Call Return Value",
+      "defaultExploitability": 65,
+      "mitigatedBy": [],
+      "mitigatedExploitability": 65,
+      "requiredEvidence": [
+        "Low-level .call, .delegatecall, or .send without checking the boolean success return value"
+      ],
+      "falsePositiveExclusions": [
+        "Return boolean is captured and validated with require(success) or custom error revert"
+      ]
+    },
+    {
+      "id": "RULE-DELEGATECALL-005",
+      "swc": "SWC-112",
+      "title": "Arbitrary or Untrusted Delegatecall",
+      "defaultExploitability": 90,
+      "mitigatedBy": ["onlyOwner", "onlyGovernance"],
+      "mitigatedExploitability": 45,
+      "requiredEvidence": [
+        "delegatecall target is user-supplied or mutable storage address without strict allowlist"
+      ],
+      "falsePositiveExclusions": [
+        "Target is an immutable implementation address in a standard audited proxy"
+      ]
+    },
+    {
+      "id": "RULE-PRAGMA-006",
+      "swc": "SWC-103",
+      "title": "Floating Pragma & Outdated Compiler Version",
+      "defaultExploitability": 10,
+      "mitigatedBy": [],
+      "mitigatedExploitability": 10,
+      "requiredEvidence": [
+        "pragma solidity uses ^ or >= range instead of a locked version"
+      ],
+      "falsePositiveExclusions": [
+        "Pragma is locked to a specific version such as pragma solidity 0.8.20;"
+      ]
+    }
+  ]
+}
+
