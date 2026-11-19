@@ -1,0 +1,90 @@
+import assert from "node:assert/strict";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import test from "node:test";
+import { canonicalize, createSnapshotStore, hashReport } from "../analysis/snapshot";
+import { priorityScore } from "../analysis/report";
+import { CandidateTriageService, MockLlmAdapter } from "../analysis";
+import { RpcContextError, type TargetContractContext } from "../rpc/context";
+import { createResponseValidator } from "./schema";
+import { createSourceReportService } from "./source-report";
+
+const sourceCode = "pragma solidity ^0.8.20; contract Demo {}";
+const address = "0x1111111111111111111111111111111111111111";
+const registry = "0x2222222222222222222222222222222222222222";
+const target: TargetContractContext = {
+  address, network: "Avalanche Fuji Testnet", chainId: 43113,
+  status: "available", balanceAvax: "5", bytecodeSize: 4, isContract: true,
+  queriedAt: "2026-11-20T12:00:00Z",
+};
+const validate = createResponseValidator();
+
+test("JCS serializes numbers, strings and keys consistently before hashing", () => {
+  assert.equal(
+    canonicalize({ z: [-0, 1e30, 333333333.33333329, 0.002], "2": "€\n", "10": "\u000f" }),
+    '{"10":"\\u000f","2":"€\\n","z":[0,1e+30,333333333.3333333,0.002]}',
+  );
+  assert.equal(canonicalize({ "\u{1F600}": 1, "\uFFFD": 2 }), '{"😀":1,"�":2}');
+  assert.throws(() => canonicalize("\uD800"));
+  assert.throws(() => canonicalize(Infinity));
+  assert.equal(hashReport({ b: 1, a: 2 }).reportHash, hashReport({ a: 2, b: 1 }).reportHash);
+  assert.notEqual(hashReport({ queriedAt: "A" }).reportHash, hashReport({ queriedAt: "B" }).reportHash);
+  assert.equal(priorityScore(4, 3, 0), 3);
+});
+
+test("persists exactly the bytes used to hash the displayed report before returning an attestable result", async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), "ava-report-"));
+  try {
+    const analyze = createSourceReportService({ fetchContext: async () => target }, createSnapshotStore(directory), validate, registry);
+    const { status, body } = await analyze({ sourceCode, contractAddress: address });
+    const payload = body as any;
+    assert.equal(status, 200);
+    assert.equal(payload.attestation.status, "READY_TO_ATTEST");
+    assert.equal(payload.attestation.registryAddress, registry);
+    assert.equal(payload.report.summary.priorityScore, 7);
+    assert.equal(payload.report.findings[0].scores.assetImpact, 0);
+    const { canonical, reportHash } = hashReport(payload.report);
+    assert.equal(payload.attestation.reportHash, reportHash);
+    assert.equal(await readFile(path.join(directory, reportHash + ".json"), "utf8"), canonical);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("optional Gemini review preserves static facts, missing RPC stays unavailable, and invalid source is rejected", async () => {
+  let writes = 0;
+  let invocations = 0;
+  const triage = new CandidateTriageService({
+    adapter: new MockLlmAdapter(() => {
+      invocations++;
+      return JSON.stringify({ assessments: [{
+        candidateId: "cand-0", verdict: "needs-review", confidence: "MEDIUM",
+        explanation: "Confirm the version used for compilation.", evidenceReferences: ["primary"],
+      }] });
+    }),
+  });
+  const analyze = createSourceReportService(
+    { fetchContext: async () => { throw new RpcContextError("RPC_TIMEOUT", "private error"); } },
+    { save: async () => { writes++; } }, validate, registry, triage,
+  );
+  assert.equal((await analyze({ sourceCode: "contract Broken {" })).status, 400);
+  const local = (await analyze({ sourceCode, contractAddress: address })).body as any;
+  assert.equal(local.report.targetContract.status, "unavailable");
+  assert.equal(local.attestation.status, "NOT_ATTESTABLE");
+  assert.equal(invocations, 0);
+  const reviewed = (await analyze({ sourceCode, reviewWithGemini: true })).body as any;
+  assert.equal(reviewed.report.reviewMode, "gemini");
+  assert.equal(reviewed.report.findings[0].review.verdict, "needs-review");
+  assert.equal(reviewed.report.summary.priorityScore, local.report.summary.priorityScore);
+  assert.equal(writes, 2);
+  assert.equal(invocations, 1);
+});
+
+test("a failed snapshot write never returns an attestable report", async () => {
+  const analyze = createSourceReportService(
+    { fetchContext: async () => target },
+    { save: async () => { throw new Error("disk full"); } }, validate, registry,
+  );
+  await assert.rejects(() => analyze({ sourceCode, contractAddress: address }), /disk full/);
+});

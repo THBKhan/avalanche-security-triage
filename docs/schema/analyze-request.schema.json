@@ -19,15 +19,42 @@
         "pattern": "^0x0{40}$"
       },
       "description": "Avalanche Fuji target contract address (0x-prefixed 40 hex characters, excluding zero address)."
+    },
+    "reviewWithGemini": {
+      "type": "boolean",
+      "description": "Opt in to sending the submitted source to the configured Gemini provider."
     }
   },
   "anyOf": [
     {
-      "required": ["sourceCode"]
+      "required": [
+        "sourceCode"
+      ]
     },
     {
-      "required": ["contractAddress"]
+      "required": [
+        "contractAddress"
+      ]
     }
   ],
-  "additionalProperties": false
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "reviewWithGemini"
+        ],
+        "properties": {
+          "reviewWithGemini": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "sourceCode"
+        ]
+      }
+    }
+  ]
 }

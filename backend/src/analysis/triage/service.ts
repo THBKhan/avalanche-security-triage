@@ -8,7 +8,7 @@
  * - Does not treat zero candidates as "contract is safe".
  * - Validates evidence references and prevents overwriting backend facts.
  * - Identifies unreviewed candidates explicitly.
- * - Sanitizes errors against secret/source leakage.
+ * - Sanitizes all errors so secrets, source code, prompts, and model payloads are never echoed.
  */
 
 import { SourceAnalysisDraft } from "../types";
@@ -25,6 +25,51 @@ import {
 } from "./types";
 
 const MAX_MODEL_RESPONSE_CHARS = 100_000;
+
+/**
+ * Fixed, sanitized error messages mapped from known safe adapter error codes.
+ * Raw adapter err.message is NEVER echoed to callers.
+ */
+const SAFE_ADAPTER_ERROR_MESSAGES: Record<string, string> = {
+  LLM_TIMEOUT: "LLM provider request timed out.",
+  LLM_RATE_LIMITED: "LLM provider rate limit exceeded.",
+  LLM_AUTH_ERROR: "LLM provider authentication or authorization failed.",
+  LLM_HTTP_ERROR: "LLM provider returned an upstream HTTP error.",
+  LLM_EMPTY_RESPONSE: "LLM provider returned an empty response.",
+  LLM_BLOCKED: "LLM provider blocked or filtered the response.",
+  LLM_TRUNCATED_RESPONSE: "LLM provider truncated the response.",
+  OUTPUT_TOO_LARGE: `Model review response exceeded maximum allowed length (${MAX_MODEL_RESPONSE_CHARS} characters).`,
+  LLM_ADAPTER_NOT_CONFIGURED: "No LLM adapter configured for candidate review.",
+};
+
+/**
+ * Allowlist of known schema field names so Zod path formatting never echoes arbitrary model keys.
+ */
+const ALLOWED_SCHEMA_PATH_KEYS = new Set([
+  "assessments",
+  "candidateId",
+  "verdict",
+  "confidence",
+  "explanation",
+  "evidenceReferences",
+  "limitations",
+  "remediation",
+]);
+
+function formatSafeZodIssue(issue: { path: PropertyKey[]; code: string }): string {
+  const safePath = issue.path
+    .map((segment) => {
+      if (typeof segment === "number") return String(segment);
+      if (typeof segment === "string" && ALLOWED_SCHEMA_PATH_KEYS.has(segment)) {
+        return segment;
+      }
+      return "<field>";
+    })
+    .join(".");
+
+  const location = safePath || "root";
+  return `${location}: ${issue.code}`;
+}
 
 export interface TriageServiceOptions {
   adapter?: LlmAdapter;
@@ -85,18 +130,26 @@ export class CandidateTriageService {
       };
     }
 
-    // 4. Invoke LLM Adapter safely
+    // 4. Invoke LLM Adapter safely (never echo raw adapter err.message)
     let rawResponse: string;
     try {
       rawResponse = await this.adapter.generateReview({
         systemPrompt: prompt.systemPrompt,
         dataMessage: prompt.dataMessage,
       });
-    } catch (err: any) {
-      // Do not echo prompt or secrets
+    } catch (err: unknown) {
+      const rawCode =
+        err && typeof err === "object" && "code" in err && typeof (err as any).code === "string"
+          ? (err as any).code
+          : undefined;
+
+      if (rawCode && Object.prototype.hasOwnProperty.call(SAFE_ADAPTER_ERROR_MESSAGES, rawCode)) {
+        throw new TriageServiceError(rawCode, SAFE_ADAPTER_ERROR_MESSAGES[rawCode]);
+      }
+
       throw new TriageServiceError(
         "LLM_PROVIDER_ERROR",
-        `LLM candidate review failed during model execution: ${err?.message || "Unknown provider error"}`
+        "LLM candidate review failed due to an upstream provider error."
       );
     }
 
@@ -104,7 +157,7 @@ export class CandidateTriageService {
     if (typeof rawResponse !== "string" || rawResponse.length > MAX_MODEL_RESPONSE_CHARS) {
       throw new TriageServiceError(
         "OUTPUT_TOO_LARGE",
-        `Model review response exceeded maximum allowed length (${MAX_MODEL_RESPONSE_CHARS} characters)`
+        `Model review response exceeded maximum allowed length (${MAX_MODEL_RESPONSE_CHARS} characters).`
       );
     }
 
@@ -119,12 +172,10 @@ export class CandidateTriageService {
       );
     }
 
-    // 7. Strict Zod schema validation
+    // 7. Strict Zod schema validation (never echo model keys or values in issues)
     const zodResult = ModelTriageOutputSchema.safeParse(parsedJson);
     if (!zodResult.success) {
-      const issueDetails = zodResult.error.issues.map(
-        (i) => `${i.path.join(".") || "root"}: ${i.message}`
-      );
+      const issueDetails = zodResult.error.issues.map(formatSafeZodIssue);
       throw new TriageServiceError(
         "INVALID_MODEL_OUTPUT",
         "Model review output failed strict schema validation.",
@@ -132,17 +183,20 @@ export class CandidateTriageService {
       );
     }
 
-    // 8. Semantic validation & Reference checks
+    // 8. Semantic validation & Reference checks (never echo untrusted model strings)
     const candidateMap = new Map(prompt.preparedCandidates.map((p) => [p.candidateId, p]));
     const assessmentMap = new Map<string, CandidateAssessment>();
 
-    for (const assessment of zodResult.data.assessments) {
+    for (let idx = 0; idx < zodResult.data.assessments.length; idx++) {
+      const assessment = zodResult.data.assessments[idx];
+
       // Check candidateId existence
       const prep = candidateMap.get(assessment.candidateId);
       if (!prep) {
         throw new TriageServiceError(
           "UNKNOWN_CANDIDATE_ID",
-          `Model assessment references unknown candidateId '${assessment.candidateId}'.`
+          "Model assessment references an unknown candidateId.",
+          [`assessments.${idx}.candidateId: unknown_candidate_id`]
         );
       }
 
@@ -150,16 +204,19 @@ export class CandidateTriageService {
       if (assessmentMap.has(assessment.candidateId)) {
         throw new TriageServiceError(
           "DUPLICATE_ASSESSMENT",
-          `Model review contains duplicate assessment for candidateId '${assessment.candidateId}'.`
+          "Model review contains a duplicate assessment for the same candidateId.",
+          [`assessments.${idx}.candidateId: duplicate_assessment`]
         );
       }
 
       // Check evidence references
-      for (const ref of assessment.evidenceReferences) {
+      for (let refIdx = 0; refIdx < assessment.evidenceReferences.length; refIdx++) {
+        const ref = assessment.evidenceReferences[refIdx];
         if (!prep.validEvidenceKeys.has(ref)) {
           throw new TriageServiceError(
             "INVALID_EVIDENCE_REFERENCE",
-            `Assessment for candidateId '${assessment.candidateId}' references non-existent evidence '${ref}'.`
+            "Model assessment references a non-existent evidence key.",
+            [`assessments.${idx}.evidenceReferences.${refIdx}: invalid_evidence_reference`]
           );
         }
       }

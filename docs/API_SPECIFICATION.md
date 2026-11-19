@@ -45,6 +45,8 @@
 Thống nhất sử dụng tên trường `targetContract` xuyên suốt giữa đặc tả và schema để biểu diễn ngữ cảnh on-chain.
 
 ### 3.1. Chế độ Source Analysis (`mode: "source-analysis"`)
+
+`reviewWithGemini: true` là tùy chọn của request có source và đồng ý gửi mã nguồn cho provider đã cấu hình. Mặc định chỉ phân tích tĩnh. Report có `sourceDigest`, `analyzedAt`, `policy`, `reviewMode`, `coverage` và `limitations`; Gemini chỉ thêm nhận xét vào candidates đã có.
 Áp dụng khi người dùng cung cấp `sourceCode` (kèm hoặc không kèm `contractAddress`).
 
 - **Cấu trúc response:**
@@ -81,7 +83,7 @@ Thống nhất sử dụng tên trường `targetContract` xuyên suốt giữa 
    - `attestation.reportHash` có mặt, đúng định dạng 64 ký tự hex và khác `bytes32(0)` (`0x000...000`).
    - `attestation.ipfsUri` có mặt.
 2. **Ràng buộc kiểm tra tại Runtime (Frontend/Backend):**
-   - Hợp đồng Registry đã được triển khai và có địa chỉ hợp lệ (`NEXT_PUBLIC_REGISTRY_ADDRESS` không rỗng và khác zero address).
+   - Hợp đồng Registry đã được triển khai và có địa chỉ hợp lệ (`REGISTRY_ADDRESS` không rỗng và khác zero address).
    - Mạng đang kết nối là Avalanche Fuji (`Chain ID: 43113`).
    - Ví Web3 của người dùng đã kết nối.
 - Nếu source-only (chưa có target address hợp lệ trên Fuji) hoặc Registry chưa được triển khai: Trạng thái bắt buộc phải là `NOT_ATTESTABLE` kèm `disabledReason`.
@@ -127,9 +129,11 @@ Thống nhất sử dụng tên trường `targetContract` xuyên suốt giữa 
 | `INVALID_REQUEST` | 400 | Request thiếu cả `sourceCode` và `contractAddress`, hoặc có trường lạ ngoài schema. |
 | `INVALID_JSON` | 400 | Payload JSON gửi lên bị sai cú pháp, không parse được. |
 | `INVALID_ADDRESS` | 400 | Địa chỉ `contractAddress` không đúng định dạng EVM hoặc là `address(0)`. |
+| `INVALID_SOURCE` | 400 | Không parse được Solidity hoặc có hơn 50 candidates. |
+| `AI_MODEL_UNAVAILABLE` | 503 | Yêu cầu Gemini khi chưa cấu hình provider. |
 | `FORBIDDEN_CORS` | 403 | Origin gửi request không nằm trong danh sách `CORS_ORIGIN` được phép. |
 | `PAYLOAD_TOO_LARGE` | 413 | Kích thước body request vượt quá giới hạn hệ thống (250kb). |
-| `RATE_LIMITED` | 429 | Người gọi vượt ngưỡng tần suất hoặc RPC upstream bị rate-limited sau các lần thử. |
+| `RATE_LIMITED` | 429 | API đạt giới hạn theo tiến trình; RPC upstream bị rate limit vẫn là 502. |
 | `UPSTREAM_RPC_ERROR` | 502 | RPC Fuji gặp sự cố/unreachable khi xử lý yêu cầu bắt buộc (address-only). |
 | `RPC_TIMEOUT` | 502 | Toàn bộ ngân sách thời gian gọi RPC (10s) bị cạn kiệt. |
 | `WRONG_NETWORK` | 502 | Endpoint RPC được cấu hình không phục vụ đúng mạng Avalanche Fuji (Chain ID != 43113). |

@@ -34,13 +34,15 @@ backend/
     │   │   ├── pragma.ts     # Trích xuất bằng chứng RULE-PRAGMA-006 (floating vs locked pragma)
     │   │   └── tx-origin.ts  # Trích xuất bằng chứng RULE-TX-ORIGIN-003 (loại trừ EOA check)
     │   └── triage/
-    │       ├── types.ts      # Schema Zod strict & types cho candidate review assessments
-    │       ├── prompt.ts     # Prompt builder phiên bản hóa, đóng gói untrusted data message
-    │       ├── adapter.ts    # Interface LlmAdapter & MockLlmAdapter cho kiểm thử offline
-    │       ├── service.ts    # CandidateTriageService điều phối review, validate Zod & semantic
-    │       └── triage.test.ts # 17 unit tests offline kiểm tra ranh giới LLM triage
+    │       ├── types.ts             # Schema Zod strict & types cho candidate review assessments
+    │       ├── prompt.ts            # Prompt builder phiên bản hóa, đóng gói untrusted data message
+    │       ├── adapter.ts           # Interface LlmAdapter & MockLlmAdapter cho kiểm thử offline
+    │       ├── gemini-adapter.ts    # Adapter Google Gemini REST API (timeout AbortSignal, bounded body)
+    │       ├── gemini-adapter.test.ts # Unit tests offline bằng fake fetch cho GeminiLlmAdapter
+    │       ├── service.ts           # CandidateTriageService điều phối review, validate Zod & semantic
+    │       └── triage.test.ts       # 17 unit tests offline kiểm tra ranh giới LLM triage
     ├── api/
-    │   ├── analyze.ts    # Route handler POST /api/analyze (nhánh address-only & tạm 501 cho source)
+    │   ├── analyze.ts    # Route handler POST /api/analyze (phân tích source hoặc đọc ngữ cảnh địa chỉ)
     │   ├── analyze.test.ts # Tests tích hợp POST /api/analyze (validate bằng schema thật)
     │   └── schema.ts     # Trình nạp và compile JSON Schema một lần (Ajv Draft 2020-12)
     ├── rpc/
@@ -50,7 +52,9 @@ backend/
     │   ├── context.test.ts # Unit tests cho address invariant, retry, cache, cancellation, timeout
     │   └── scope.ts      # AsyncLocalStorage quản lý RequestScope và AbortController độc lập
     └── scripts/
-        └── test-rpc.ts   # CLI script kiểm tra live context Fuji an toàn (chỉ đọc)
+        ├── test-rpc.ts         # CLI script kiểm tra live context Fuji an toàn (chỉ đọc)
+        ├── smoke-gemini.ts     # CLI smoke test Gemini có kiểm soát (mặc định không gọi mạng)
+        └── smoke-gemini.test.ts # Unit tests offline bằng fake fetch cho smoke:gemini
 ```
 
 ---
@@ -66,7 +70,9 @@ cp .env.example .env
 | :--- | :--- | :---: | :--- |
 | `PORT` | `3001` | Không | Cổng lắng nghe HTTP Server (1–65535). |
 | `FUJI_RPC_URL` | `https://api.avax-test.network/ext/bc/C/rpc` | Không | Endpoint RPC mạng Avalanche Fuji Testnet (Chain ID 43113). |
-| `LLM_API_KEY` | *(trống)* | Tùy chọn | API key cho model AI (chưa cần khi chạy Health / RPC inspection). |
+| `LLM_PROVIDER` | *(trống)* | Tùy chọn | Provider LLM sử dụng khi bật review (hiện hỗ trợ `gemini`). |
+| `LLM_MODEL` | *(trống)* | Bắt buộc khi bật `LLM_PROVIDER` | Model ID khai báo rõ ràng (ví dụ `gemini-2.5-flash`); không hardcode model mặc định. |
+| `LLM_API_KEY` | *(trống)* | Bắt buộc khi bật `LLM_PROVIDER` | API key cho provider LLM (truyền qua header `x-goog-api-key`, không gắn vào URL). |
 | `CORS_ORIGIN` | `http://localhost:3000` | Không | Origin được phép truy cập Dashboard (hỗ trợ phân tách bằng dấu phẩy). |
 
 > 🔒 **Chính sách an toàn:**
@@ -184,8 +190,8 @@ Module `src/rpc/context.ts` cung cấp hàm đọc trạng thái on-chain trên 
       }
     }
     ```
-  - **Nhánh Source Analysis (Tạm thời):**
-    - Trả về HTTP `501 Not Implemented` với mã `SOURCE_ANALYSIS_NOT_IMPLEMENTED` trong giai đoạn phát triển hiện tại.
+  - **Nhánh Source Analysis:**
+    - Trả report đã lưu kèm Keccak-256 hash. Có thể bật Gemini theo từng yêu cầu khi backend đã cấu hình provider.
   - Xem chi tiết toàn bộ các trường hợp request/response và mã lỗi tại [docs/api-examples.md](file:///c:/Users/Admin/avalanche-security-triage/docs/api-examples.md).
 
 ---
@@ -225,8 +231,8 @@ Module `src/analysis` cung cấp công cụ phân tích tĩnh Solidity AST độ
 
 ## 🤖 Ranh Giới Tích Hợp LLM Triage (`src/analysis/triage`)
 
-Module `src/analysis/triage` thiết lập ranh giới kiểm soát an toàn trước khi kết nối mô hình LLM:
-- **Nguyên tắc dữ liệu không tin cậy:** Mã nguồn Solidity, chú thích, chuỗi literal, tên hàm và candidate notes đều được đóng gói nghiêm ngặt trong payload `dataMessage` dưới dạng JSON có cấu trúc. System instructions được bảo vệ trong `systemPrompt` riêng biệt (phiên bản `2026-11-candidate-review-v1`), cảnh báo chống prompt injection.
+Module `src/analysis/triage` thiết lập ranh giới kiểm soát an toàn cho bước review candidates:
+- **Nguyên tắc dữ liệu không tin cậy:** Mã nguồn Solidity, chú thích, chuỗi literal, tên hàm và candidate notes đều được đóng gói nghiêm ngặt trong payload `dataMessage` dưới dạng JSON có cấu trúc. System instructions được bảo vệ trong `systemPrompt` riêng biệt (phiên bản `2026-11-candidate-review-v1.1`), cảnh báo chống prompt injection và cấm sinh mã PoC khai thác hoặc gọi tools ngoài.
 - **Contract đánh giá nội bộ:** Mô hình chỉ review các candidates do tầng static cấp (`candidateId: cand-0, cand-1...`). Verdict chỉ cho phép `potential-issue`, `dismissed`, hoặc `needs-review` (tuyệt đối không dùng `confirmed` để ngụ ý đã chứng minh lỗ hổng). Không cho phép mô hình sinh ra `priorityScore`, `severity`, hay `reportHash`.
 - **Validation bằng Zod Strict:** Phân tích JSON bằng `JSON.parse` (không dùng `eval`), áp dụng Zod `.strict()` để từ chối mọi trường lạ hoặc vượt giới hạn dung lượng/độ dài chuỗi.
 - **Kiểm tra ngữ nghĩa & Bảo toàn dữ kiện:**
@@ -235,5 +241,30 @@ Module `src/analysis/triage` thiết lập ranh giới kiểm soát an toàn tr�
   - Mô hình không được phép ghi đè chữ ký hàm, vị trí dòng, hay dữ kiện on-chain từ RPC.
   - Candidate nào bị mô hình bỏ sót sẽ được gắn trạng thái `unreviewed` rõ ràng, không âm thầm coi như `dismissed`.
   - Trường hợp 0 candidates không được suy diễn thành "contract an toàn".
-- **Kiểm thử Offline & Phân tách Môi trường:** Hỗ trợ `MockLlmAdapter` để kiểm thử 100% offline, không phát sinh network call. Khi thiếu adapter thật, service trả lỗi `LLM_ADAPTER_NOT_CONFIGURED` rõ ràng; tuyệt đối không tự ý dùng kết quả mock thay cho kết quả live. Lỗi không echo source code, prompt, hay secret key.
-- **Trạng thái cấu hình Live:** Nhà cung cấp model LLM thật chưa được cấu hình. Bước 13 tiếp tục giữ trạng thái `[-]` chờ thống nhất cấu hình nhà cung cấp và model live.
+- **Gemini Adapter (`src/analysis/triage/gemini-adapter.ts`):**
+  - Triển khai `LlmAdapter` gọi endpoint HTTPS cố định của Google Gemini (`https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent`) với `redirect: "error"`. Gửi `systemPrompt` vào `systemInstruction`, `dataMessage` vào `contents`, đặt `generationConfig.responseMimeType = "application/json"`, không bật `tools`/`toolConfig`.
+  - Truyền API key qua header `x-goog-api-key` (không gắn vào URL).
+  - Bỏ qua các `parts` có `thought: true` khi trích JSON cuối; vẫn áp dụng đầy đủ Zod strict và kiểm tra candidate/evidence references tại `CandidateTriageService`.
+  - Yêu cầu khai báo rõ ràng cả 3 biến trong `.env`:
+    ```env
+    LLM_PROVIDER=gemini
+    LLM_MODEL=<model-id-ro-rang>
+    LLM_API_KEY=<your-gemini-api-key>
+    ```
+    (Không hardcode model mặc định; `createLlmAdapterFromConfig` sẽ trả `LLM_ADAPTER_NOT_CONFIGURED` nếu thiếu `LLM_MODEL` hoặc `LLM_API_KEY`.)
+  - Có timeout hủy HTTP thật qua `AbortSignal`, giới hạn dung lượng response theo byte (`maxResponseBytes`), không tự động retry request model, và ánh xạ an toàn cho HTTP 429 (`LLM_RATE_LIMITED`), 401/403 (`LLM_AUTH_ERROR`), 5xx (`LLM_HTTP_ERROR`), phản hồi trống (`LLM_EMPTY_RESPONSE`), bị chặn (`LLM_BLOCKED`), hoặc bị cắt (`LLM_TRUNCATED_RESPONSE`).
+- **Smoke Test Gemini Có Kiểm Soát (`npm run smoke:gemini`):**
+  - **Chế độ mặc định (không gọi mạng / dry-run):**
+    ```bash
+    npm run smoke:gemini
+    ```
+  - **Chạy live (gửi đúng 1 request với source cố định `pragma solidity ^0.8.20; contract Demo {}`):**
+    ```bash
+    npm run smoke:gemini -- --live
+    ```
+  - Script không nhận đường dẫn file, source tùy ý hay địa chỉ ví từ CLI; chỉ in model ID, số candidate đã review, thời gian thực thi và kết quả (`PASS` / `FAIL` / `DRY_RUN`), tuyệt đối không in API key, prompt, source hay response thô.
+  - Chỉ `PASS` khi candidate floating pragma (`RULE-PRAGMA-006`) có assessment hợp lệ và `evidenceReferences` khớp; trường hợp JSON hợp lệ nhưng bỏ sót candidate sẽ bị báo `FAIL (MISSING_ASSESSMENT)`.
+- **Chống lộ thông tin lỗi:** `CandidateTriageService` không bao giờ echo `err.message` thô từ adapter và không echo key/value/ID/evidenceRef do model trả về trong thông báo lỗi hay mảng `issues`.
+- **Kiểm thử Offline & Trạng thái Live:** Toàn bộ kiểm thử hiện tại dùng `MockLlmAdapter` và fake `fetch` hoàn toàn offline. Bước 13 tiếp tục giữ trạng thái `[-]` cho đến khi có bằng chứng chạy `smoke:gemini -- --live` với provider thật. API phân tích tĩnh hoạt động kể cả khi provider chưa cấu hình.
+
+Xem [hướng dẫn demo và triển khai](../docs/DEMO.md) để cấu hình registry Fuji và thư mục lưu snapshot.
