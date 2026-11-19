@@ -2,7 +2,7 @@
 
 > **Mục tiêu:** Đặc tả giao diện contract, chữ ký hàm, ràng buộc dữ liệu thực tế, và quy tắc tích hợp Web3 Attestation cho hệ thống Avalanche Security Triage trên Avalanche Fuji Testnet.  
 > **Người phụ trách:** THBKhan (SE Lead) phối hợp với Alexvuong2006 (InfoSec Lead).  
-> **Trạng thái:** Đã đối chiếu quy tắc điểm với review PR #2; chờ địa chỉ registry đã deploy trên Fuji.
+> **Trạng thái:** Đã xác minh registry triển khai trên Fuji. Quy tắc điểm đã đối chiếu với review PR #2.
 
 ---
 
@@ -63,11 +63,11 @@ event AttestationRecorded(
 ## 3. Trạng Thái Triển Khai Trên Avalanche Fuji
 
 Theo tài liệu hiện có tại [DEPLOYED_ADDRESSES.md](../contracts/DEPLOYED_ADDRESSES.md#L14-L17):
-- **Trạng thái:** `Pending deployment` (Chưa deploy lên Avalanche Fuji Testnet).
-- **Địa chỉ Registry:** Chưa có địa chỉ hợp lệ được xác minh.
+- **Trạng thái:** Giao dịch deploy thành công tại block `61343895`. Runtime bytecode khớp bản build trong repo.
+- **Địa chỉ Registry:** `0xB94F639079de5b1D3AF27f18F09b417f04742107`.
 - **Fuji Chain ID:** `43113`.
 - **Fuji RPC URL:** `https://api.avax-test.network/ext/bc/C/rpc`.
-- **Explorer:** `https://testnet.snowtrace.io/` (Lưu ý: Đây là cấu hình tài liệu được ghi nhận trong repo, **chưa được coi là đã xác minh live** vì chưa có contract/tx thực tế).
+- **Explorer:** [Giao dịch deploy trên Fuji](https://testnet.snowtrace.io/tx/0xd813393bfcd1d9acdedde9bd5d82ced1312c657d20ba473cdef1380174254585).
 
 ### Quy tắc an toàn bắt buộc khi thiếu địa chỉ:
 1. **Tuyệt đối không tạo địa chỉ giả làm fallback** trong cấu hình ứng dụng (`REGISTRY_ADDRESS` không được gán địa chỉ tùy tiện).
@@ -85,4 +85,4 @@ Alex báo **14/14 test Hardhat đạt** trong [review của Alex trên PR #2](ht
 
 - Backend tính điểm có trọng số, gọi `Math.round(raw)` một lần để xuất số nguyên 0–100 và băm snapshot sau khi chốt điểm.
 - Điểm báo cáo lấy max chỉ trong các finding được review là `potential-issue`, hoặc 0 nếu nhóm rỗng. Các candidate chưa review, `needs-review` và `dismissed` vẫn hiển thị với điểm riêng. Báo cáo thiếu finding đủ điều kiện sẽ không attest.
-- Địa chỉ cung cấp trong phiên này không có bytecode trên Fuji ở block `61343231`. Chờ registry đã deploy và tx hash từ nhóm trước khi cấu hình `REGISTRY_ADDRESS`.
+- Đặt `REGISTRY_ADDRESS` trong cấu hình backend bằng địa chỉ registry đã xác minh ở mục 3. Dùng ví Fuji để ký lần attest thử.

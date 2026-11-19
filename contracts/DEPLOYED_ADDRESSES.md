@@ -13,7 +13,9 @@
 
 | Contract | Address | Deployment Tx | Explorer Link | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `AvaTriageRegistry` | `Pending deployment` | `Pending` | `https://testnet.snowtrace.io/address/<ADDRESS>` | Ready to deploy |
+| `AvaTriageRegistry` | `0xB94F639079de5b1D3AF27f18F09b417f04742107` | [Deployment transaction](https://testnet.snowtrace.io/tx/0xd813393bfcd1d9acdedde9bd5d82ced1312c657d20ba473cdef1380174254585) | [Registry on Fuji](https://testnet.snowtrace.io/address/0xB94F639079de5b1D3AF27f18F09b417f04742107) | Deployed and verified at block `61343895` |
+
+The Fuji receipt confirms successful contract creation. The deployed runtime bytecode matches the local Solidity 0.8.20 build of `AvaTriageRegistry`.
 
 ## How to Deploy to Fuji
 
