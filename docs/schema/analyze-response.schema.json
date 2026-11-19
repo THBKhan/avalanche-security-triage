@@ -344,7 +344,12 @@
               "type": "integer",
               "minimum": 0,
               "maximum": 100,
-              "description": "Integer score of the highest-ranked candidate under the demo policy, or zero for an empty report."
+              "description": "Highest integer priority score among candidates reviewed as potential-issue, or zero when none qualify."
+            },
+            "scoredFindingCount": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of candidates eligible for the report score."
             }
           },
           "required": [

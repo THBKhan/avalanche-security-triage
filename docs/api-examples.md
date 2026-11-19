@@ -52,7 +52,7 @@ Content-Type: application/json
 { "sourceCode": "pragma solidity ^0.8.20; contract Demo {}" }
 ```
 
-HTTP 200 có `mode: "source-analysis"`. Mẫu này tạo một finding floating pragma, điểm demo 7, và `attestation.status: "NOT_ATTESTABLE"` cùng hash của snapshot đã lưu.
+HTTP 200 có `mode: "source-analysis"`. Mẫu này tạo một finding floating pragma với điểm riêng 7, điểm cấp báo cáo 0 vì chưa có verdict `potential-issue`, và `attestation.status: "NOT_ATTESTABLE"` cùng hash của snapshot đã lưu.
 
 Có thể thêm `contractAddress` để kèm ngữ cảnh Fuji. Nếu RPC lỗi, báo cáo source vẫn trả HTTP 200 với `report.targetContract.status: "unavailable"`. Trường `reviewWithGemini: true` yêu cầu người dùng đồng ý gửi source cho Gemini. Nếu chưa cấu hình, API trả 503 `AI_MODEL_UNAVAILABLE`; lỗi provider trả 502 `AI_MODEL_ERROR`. Source sai cú pháp trả 400 `INVALID_SOURCE`.
 

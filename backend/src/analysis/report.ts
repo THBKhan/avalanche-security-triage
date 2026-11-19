@@ -12,7 +12,7 @@ export type ReportContext = TargetContractContext | {
   warning: string;
 } | { status: "unspecified" };
 
-export const SCORING_POLICY = "demo-v1-half-up-max";
+export const SCORING_POLICY = "demo-v2-half-up-max-potential-issue";
 
 export function priorityScore(exploitability: number, exposure: number, assetImpact: number) {
   return Math.round((4 * exploitability + 3 * exposure + 3 * assetImpact) / 10);
@@ -79,6 +79,7 @@ export function buildReport(
       } : {}),
     };
   }).sort((a, b) => b.scores.priorityScore - a.scores.priorityScore);
+  const scoredFindings = findings.filter((item) => item.review?.verdict === "potential-issue");
 
   return {
     sourceDigest: keccak256(stringToHex(sourceCode)),
@@ -86,10 +87,12 @@ export function buildReport(
     policy: SCORING_POLICY,
     reviewMode: review ? "gemini" : "static",
     limitations: [
-      "Scores are local demo estimates with half-up rounding and the highest candidate as the report score.",
+      "Scores use half-up rounding. The report score is the highest candidate marked potential-issue, or 0 if none qualify.",
       "Asset Impact uses a zero placeholder because asset exposure is unverified, even when native balance is available.",
       "The submitted source was not matched against deployed bytecode. Candidates are observations for human review.",
-      ...(findings.length ? [] : ["No candidates from the available checks. This is not a safety verdict."]),
+      ...(scoredFindings.length ? [] : [findings.length
+        ? "No potential-issue candidate contributes to the report score. This is not a safety verdict."
+        : "No candidates from the available checks. This is not a safety verdict."]),
       ...draft.limitations.slice(0, 50).map((item) => boundText(item, 1000)),
     ],
     coverage: {
@@ -103,7 +106,8 @@ export function buildReport(
       highCount: findings.filter((item) => item.severity === "HIGH").length,
       mediumCount: findings.filter((item) => item.severity === "MEDIUM").length,
       lowCount: findings.filter((item) => item.severity === "LOW").length,
-      priorityScore: findings[0]?.scores.priorityScore ?? 0,
+      scoredFindingCount: scoredFindings.length,
+      priorityScore: scoredFindings[0]?.scores.priorityScore ?? 0,
     },
     findings,
     ...("queriedAt" in targetContract ? { queriedAt: targetContract.queriedAt } : {}),

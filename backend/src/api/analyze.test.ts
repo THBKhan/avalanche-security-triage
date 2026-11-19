@@ -243,7 +243,9 @@ test("POST /api/analyze: source-only persists its report and source plus RPC fai
 
   assert.equal(resSourceOnly.status, 200);
   assert.equal(resSourceOnly.body.mode, "source-analysis");
-  assert.equal(resSourceOnly.body.report.summary.priorityScore, 7);
+  assert.equal(resSourceOnly.body.report.summary.priorityScore, 0);
+  assert.equal(resSourceOnly.body.report.summary.scoredFindingCount, 0);
+  assert.equal(resSourceOnly.body.report.findings[0].scores.priorityScore, 7);
   assert.equal(resSourceOnly.body.attestation.status, "NOT_ATTESTABLE");
   assert.equal(readerCalls, 0);
   assert.equal(saves, 1);

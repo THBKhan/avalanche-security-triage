@@ -288,7 +288,9 @@ export class GeminiLlmAdapter implements LlmAdapter {
       ],
       generationConfig: {
         responseMimeType: "application/json",
-        temperature: 0,
+        ...(this.model === "gemini-3.5-flash"
+          ? { thinkingConfig: { thinkingLevel: "LOW" } }
+          : {}),
       },
     };
 

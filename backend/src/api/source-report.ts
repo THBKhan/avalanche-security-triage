@@ -84,8 +84,8 @@ export function createSourceReportService(
 
     const report = buildReport(sourceCode, analysis.draft, context, review);
     const snapshot = hashReport(report);
-    const disabledReason = !report.findings.length
-      ? "There are no candidates to attest."
+    const disabledReason = !report.summary.scoredFindingCount
+      ? "Attestation requires at least one candidate marked potential-issue."
       : context.status !== "available" || !context.isContract
         ? "Attestation requires a readable Fuji address with deployed code."
         : !registryAddress ? "The Fuji registry is not configured." : "";

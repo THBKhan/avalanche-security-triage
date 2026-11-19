@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { canonicalize, createSnapshotStore, hashReport } from "../analysis/snapshot";
-import { priorityScore } from "../analysis/report";
-import { CandidateTriageService, MockLlmAdapter } from "../analysis";
+import { buildReport, priorityScore } from "../analysis/report";
+import { analyzeSoliditySource, CandidateTriageService, MockLlmAdapter } from "../analysis";
 import { RpcContextError, type TargetContractContext } from "../rpc/context";
 import { createResponseValidator } from "./schema";
 import { createSourceReportService } from "./source-report";
@@ -19,6 +19,12 @@ const target: TargetContractContext = {
   queriedAt: "2026-11-20T12:00:00Z",
 };
 const validate = createResponseValidator();
+const mockPotentialIssue = new CandidateTriageService({
+  adapter: new MockLlmAdapter(JSON.stringify({ assessments: [{
+    candidateId: "cand-0", verdict: "potential-issue", confidence: "MEDIUM",
+    explanation: "Pin the compiler version used for builds.", evidenceReferences: ["primary"],
+  }] })),
+});
 
 test("JCS serializes numbers, strings and keys consistently before hashing", () => {
   assert.equal(
@@ -36,13 +42,14 @@ test("JCS serializes numbers, strings and keys consistently before hashing", () 
 test("persists exactly the bytes used to hash the displayed report before returning an attestable result", async () => {
   const directory = await mkdtemp(path.join(tmpdir(), "ava-report-"));
   try {
-    const analyze = createSourceReportService({ fetchContext: async () => target }, createSnapshotStore(directory), validate, registry);
-    const { status, body } = await analyze({ sourceCode, contractAddress: address });
+    const analyze = createSourceReportService({ fetchContext: async () => target }, createSnapshotStore(directory), validate, registry, mockPotentialIssue);
+    const { status, body } = await analyze({ sourceCode, contractAddress: address, reviewWithGemini: true });
     const payload = body as any;
     assert.equal(status, 200);
     assert.equal(payload.attestation.status, "READY_TO_ATTEST");
     assert.equal(payload.attestation.registryAddress, registry);
     assert.equal(payload.report.summary.priorityScore, 7);
+    assert.equal(payload.report.summary.scoredFindingCount, 1);
     assert.equal(payload.report.findings[0].scores.assetImpact, 0);
     const { canonical, reportHash } = hashReport(payload.report);
     assert.equal(payload.attestation.reportHash, reportHash);
@@ -76,9 +83,51 @@ test("optional Gemini review preserves static facts, missing RPC stays unavailab
   const reviewed = (await analyze({ sourceCode, reviewWithGemini: true })).body as any;
   assert.equal(reviewed.report.reviewMode, "gemini");
   assert.equal(reviewed.report.findings[0].review.verdict, "needs-review");
-  assert.equal(reviewed.report.summary.priorityScore, local.report.summary.priorityScore);
+  assert.equal(reviewed.report.summary.priorityScore, 0);
+  assert.equal(reviewed.report.summary.scoredFindingCount, 0);
   assert.equal(writes, 2);
   assert.equal(invocations, 1);
+});
+
+test("uses only potential-issue findings for the report score and preserves all candidates", async () => {
+  const source = "pragma solidity ^0.8.20; contract Demo { address owner; function check() external view { require(tx.origin == owner); } }";
+  const analysis = analyzeSoliditySource(source);
+  assert.ok(analysis.ok);
+  const draft = analysis.draft;
+  const highest = draft.candidates.findIndex((candidate) => candidate.ruleId === "RULE-TX-ORIGIN-003");
+  const lower = draft.candidates.findIndex((candidate) => candidate.ruleId === "RULE-PRAGMA-006");
+  assert.ok(highest >= 0 && lower >= 0);
+  const assessment = (index: number, verdict: string) => ({
+    candidateId: `cand-${index}`, verdict, confidence: "MEDIUM",
+    explanation: "Static observation requires context.", evidenceReferences: ["primary"],
+  });
+  for (const verdict of ["dismissed", "needs-review", undefined]) {
+    const triage = new CandidateTriageService({
+      adapter: new MockLlmAdapter(JSON.stringify({ assessments: [
+        assessment(lower, "potential-issue"), ...(verdict ? [assessment(highest, verdict)] : []),
+      ] })),
+    });
+    const review = await triage.reviewCandidates({ sourceCode: source, draft });
+    const report = buildReport(source, draft, target, review);
+    assert.equal(report.findings.length, 2);
+    assert.ok(report.findings[0].scores.priorityScore > 7);
+    assert.equal(report.summary.priorityScore, 7);
+    assert.equal(report.summary.scoredFindingCount, 1);
+  }
+  const staticReport = buildReport(source, draft, target);
+  assert.equal(staticReport.summary.priorityScore, 0);
+  assert.equal(staticReport.summary.scoredFindingCount, 0);
+});
+
+test("reports without any potential issue remain non-attestable even with registry and deployed target", async () => {
+  const analyze = createSourceReportService(
+    { fetchContext: async () => target }, { save: async () => {} }, validate, registry,
+  );
+  const { body } = await analyze({ sourceCode, contractAddress: address });
+  const payload = body as any;
+  assert.equal(payload.attestation.status, "NOT_ATTESTABLE");
+  assert.equal(payload.report.summary.priorityScore, 0);
+  assert.equal(payload.report.findings[0].scores.priorityScore, 7);
 });
 
 test("a failed snapshot write never returns an attestable report", async () => {

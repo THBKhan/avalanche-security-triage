@@ -7,7 +7,7 @@ const addressWord = (address) => address.toLowerCase().slice(2).padStart(64, "0"
 
 export function prepareAttestation(result) {
   const { report, attestation } = result ?? {};
-  if (attestation?.status !== "READY_TO_ATTEST" || !report) return null;
+  if (attestation?.status !== "READY_TO_ATTEST" || !report || report.summary?.scoredFindingCount === 0) return null;
   const { registryAddress: registry, reportHash: hash, ipfsUri } = attestation;
   const target = report.targetContract?.address;
   const score = report.summary?.priorityScore;

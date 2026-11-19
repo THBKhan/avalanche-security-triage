@@ -25,7 +25,7 @@ contract VaultDemo {
 `.trim();
 
 const FAKE_SECRET_KEY = "fake-gemini-key-adapter-test-never-leak";
-const TEST_MODEL = "gemini-2.5-flash";
+const TEST_MODEL = "gemini-3.5-flash";
 
 function makeGeminiEnvelope(text: string, finishReason = "STOP"): Response {
   const payload = JSON.stringify({
@@ -176,6 +176,8 @@ describe("GeminiLlmAdapter (Offline Fake Fetch)", () => {
       assert.equal(parsedUserData.sourceCode, SAMPLE_SOURCE);
 
       assert.equal(parsedBody.generationConfig?.responseMimeType, "application/json");
+      assert.equal(parsedBody.generationConfig?.thinkingConfig?.thinkingLevel, "LOW");
+      assert.equal(parsedBody.generationConfig?.temperature, undefined);
       assert.equal(parsedBody.tools, undefined, "Tools must not be enabled");
       assert.equal(parsedBody.toolConfig, undefined, "ToolConfig must not be enabled");
 

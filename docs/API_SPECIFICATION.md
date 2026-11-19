@@ -1,7 +1,7 @@
 # 📡 Đặc Tả API: Avalanche Security Triage (`POST /api/analyze`)
 
 > **Mục tiêu:** Thống nhất hợp đồng giao tiếp giữa Frontend Web Dashboard và Backend Triage Engine cho dự án Avalanche Security Triage.  
-> **Schema tham chiếu:** [analyze-request.schema.json](file:///C:/Users/Admin/avalanche-security-triage/docs/schema/analyze-request.schema.json) và [analyze-response.schema.json](file:///C:/Users/Admin/avalanche-security-triage/docs/schema/analyze-response.schema.json)  
+> **Schema tham chiếu:** [analyze-request.schema.json](schema/analyze-request.schema.json) và [analyze-response.schema.json](schema/analyze-response.schema.json)
 > **Phạm vi mạng:** Mạng Avalanche Fuji Testnet (Chain ID `43113`), không ngầm mở sang Mainnet trong phạm vi bản demo.
 
 ---
@@ -58,7 +58,7 @@ Thống nhất sử dụng tên trường `targetContract` xuyên suốt giữa 
        - Khi người dùng chỉ nhập `sourceCode`: `status = "unspecified"`.
      - `summary`:
        - `totalVulnerabilities`, `criticalCount`, `highCount`, `mediumCount`, `lowCount`: Số nguyên không âm (`minimum: 0`).
-       - `priorityScore`: **Bắt buộc là số nguyên `0..100`** theo quyết định bắt buộc số 1.
+       - `priorityScore`: **Số nguyên 0–100**. Backend dùng max của các finding `potential-issue`, hoặc 0 nếu không có. `scoredFindingCount` ghi số finding đóng góp.
      - `findings`: Danh sách phát hiện sắp xếp giảm dần theo `priorityScore`. Mỗi finding chứa:
        - `scores`: `exploitability` (number 0..100), `exposure` (number 0..100), `assetImpact` (number 0..100), và `priorityScore` (**bắt buộc integer `0..100`**).
        - `severity`: Enum `CRITICAL` (>=80), `HIGH` (60-79), `MEDIUM` (40-59), `LOW` (0-39).
@@ -73,7 +73,7 @@ Thống nhất sử dụng tên trường `targetContract` xuyên suốt giữa 
      - `status`: `"READY_TO_ATTEST"` | `"NOT_ATTESTABLE"` | `"DISABLED"`
      - `disabledReason`: Bắt buộc khi status là `NOT_ATTESTABLE` hoặc `DISABLED` (thống nhất tên trường này trên toàn bộ hệ thống).
      - `reportHash`: Mã băm Keccak-256 (32 bytes hex `^0x[0-9a-fA-F]{64}$`). Không được là `bytes32(0)`.
-     - `ipfsUri`: Chuỗi URI lưu trữ. **Lưu ý kỹ thuật:** Ràng buộc `maxLength: 512` trong JSON Schema chỉ đếm ký tự UTF-16; **backend runtime bắt buộc phải kiểm tra giới hạn <= 512 bytes UTF-8** theo đúng yêu cầu của contract [AvaTriageRegistry.sol](file:///C:/Users/Admin/avalanche-security-triage/contracts/contracts/AvaTriageRegistry.sol#L69-L72).
+     - `ipfsUri`: Chuỗi URI lưu trữ. **Lưu ý kỹ thuật:** Ràng buộc `maxLength: 512` trong JSON Schema chỉ đếm ký tự UTF-16; **backend runtime bắt buộc phải kiểm tra giới hạn <= 512 bytes UTF-8** theo đúng yêu cầu của contract [AvaTriageRegistry.sol](../contracts/contracts/AvaTriageRegistry.sol#L69-L72).
 
 ### 3.2. Điều Kiện Kích Hoạt `READY_TO_ATTEST`
 Để trạng thái attestation chuyển thành `READY_TO_ATTEST`, hệ thống yêu cầu:
@@ -159,7 +159,7 @@ Thống nhất sử dụng tên trường `targetContract` xuyên suốt giữa 
    - Contract nhận `uint256 priorityScore`.
    - Cần Alex xác nhận: Sử dụng `Math.round(raw)` (làm tròn số nguyên gần nhất half-up) hay `Math.floor(raw)`.
 2. **Quy tắc tổng hợp điểm cấp Report khi có nhiều findings:**
-   - Trong [mock-data.json](file:///C:/Users/Admin/avalanche-security-triage/docs/mock-data.json), `compositeRiskScore` là `84.5` trong khi findings có điểm là 95.0, 97.0, 11.5. Chưa có quy tắc nào giải thích số 84.5.
+   - Trong [mock-data.json](mock-data.json), `compositeRiskScore` là `84.5` trong khi findings có điểm là 95.0, 97.0, 11.5. Chưa có quy tắc nào giải thích số 84.5.
    - Cần xác nhận: Report-level score là giá trị lớn nhất (max finding), trung bình có trọng số, hay công thức nào khác? Không tự ý giả định.
 3. **Địa chỉ triển khai Registry chính thức trên Fuji:**
-   - Cần cập nhật vào [DEPLOYED_ADDRESSES.md](file:///C:/Users/Admin/avalanche-security-triage/contracts/DEPLOYED_ADDRESSES.md) khi deploy hoàn tất.
+   - Cần cập nhật vào [DEPLOYED_ADDRESSES.md](../contracts/DEPLOYED_ADDRESSES.md) khi deploy hoàn tất.

@@ -30,6 +30,9 @@ test("wallet request uses the viewed hash, integer score, and fixed empty IPFS U
     data: "0x4fd9d719" + word(target.slice(2)) + reportHash.slice(2) + word("57") + word("80") + word("0"),
   }]);
   assert.equal(prepareAttestation({ ...snapshot, attestation: { status: "DISABLED" } }), null);
+  assert.equal(prepareAttestation({
+    ...snapshot, report: { ...snapshot.report, summary: { priorityScore: 0, scoredFindingCount: 0 } },
+  }), null);
 });
 
 test("wrong chain and absent registry code cannot reach the wallet send call", async () => {

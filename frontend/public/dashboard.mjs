@@ -12,7 +12,7 @@ const demo = {
   mode: "source-analysis",
   report: {
     reviewMode: "static",
-    summary: { totalVulnerabilities: 1, priorityScore: 7 },
+    summary: { totalVulnerabilities: 1, scoredFindingCount: 0, priorityScore: 0 },
     targetContract: { status: "unspecified" },
     findings: [{
       title: "Floating Solidity pragma", function: "Global", severity: "LOW", confidence: "HIGH",
@@ -112,7 +112,10 @@ function render(payload, label) {
   const context = report?.targetContract ?? payload.targetContract;
   const contextAvailable = context?.status === "available";
   const metrics = [];
-  if (report) metrics.push(metric("Điểm ưu tiên", report.findings.length ? report.summary.priorityScore : "—"), metric("Phát hiện", report.findings.length));
+  if (report) {
+    const count = report.summary.scoredFindingCount ?? report.findings.length;
+    metrics.push(metric("Điểm ưu tiên", count ? report.summary.priorityScore : "—"), metric("Phát hiện", report.findings.length));
+  }
   if (contextAvailable) metrics.push(metric("Số dư AVAX", context.balanceAvax), metric("Bytecode", context.bytecodeSize + " B"));
   $("metrics").replaceChildren(...metrics);
   $("context").hidden = !context?.address && !context?.warning;

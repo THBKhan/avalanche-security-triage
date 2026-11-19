@@ -45,5 +45,5 @@ Open http://localhost:3001 and choose **Thử dữ liệu mẫu**. Click **Phân
 - Attestation requires a report with a valid integer score and hash, plus a valid target address and registry configuration. Backend finalizes the score before hashing; the UI uses the saved report snapshot and never reruns analysis to prepare an attestation.
 - Static analysis covers the floating pragma and `tx.origin` candidate checks. The report lists checks that are still outside the analyzer's scope.
 - Gemini review is optional and requires explicit opt-in for each request. Configure `LLM_PROVIDER`, `LLM_MODEL` and `LLM_API_KEY` in the backend environment to enable it.
-- The demo scoring policy rounds each candidate to the nearest integer, with halves rounded up, and takes the highest candidate as the report score. An empty report cannot be attested.
+- The demo scoring policy rounds each candidate to the nearest integer, with halves rounded up, and takes the highest score among findings reviewed as `potential-issue`. The report score is 0 and attestation is disabled when none qualify.
 - See [API examples](./docs/api-examples.md), [deployment and demo instructions](./docs/DEMO.md), and the [implementation plan](./docs/SE_WEB_RPC_IMPLEMENTATION_PLAN.md).

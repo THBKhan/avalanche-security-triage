@@ -271,7 +271,10 @@ export async function runGeminiSmoke(
 }
 
 if (require.main === module) {
-  runGeminiSmoke().then((outcome) => {
-    process.exit(outcome.exitCode);
+  void runGeminiSmoke().then((outcome) => {
+    process.exitCode = outcome.exitCode;
+  }, () => {
+    console.error("Result:   FAIL (UNEXPECTED_SMOKE_ERROR)");
+    process.exitCode = 1;
   });
 }

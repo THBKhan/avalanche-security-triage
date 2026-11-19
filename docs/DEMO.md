@@ -11,7 +11,7 @@ npm --prefix backend run dev
 
 Mở http://localhost:3001. Chọn **Thử dữ liệu mẫu**, mở finding và xem diff minh họa. Bấm **Phân tích** để tạo báo cáo bằng analyzer tĩnh, kiểm tra điểm, evidence, phạm vi, rồi tải JSON. Xóa mã và chỉ nhập một địa chỉ Fuji để thử chế độ đọc ngữ cảnh.
 
-Điểm demo dùng trọng số 40/30/30, làm tròn một lần ở backend và lấy finding cao nhất làm điểm báo cáo. Không có finding thì báo cáo có giá trị kỹ thuật 0, giao diện hiển thị dấu gạch và nút ghi nhận bị khóa. Asset Impact là 0 khi chưa xác minh được tài sản có rủi ro. Số dư AVAX được hiển thị riêng.
+Điểm demo dùng trọng số 40/30/30, làm tròn một lần ở backend và lấy điểm cao nhất trong các finding được review là `potential-issue`. Nếu không có finding đủ điều kiện, điểm báo cáo là 0, giao diện hiển thị dấu gạch và nút ghi nhận bị khóa. Asset Impact là 0 khi chưa xác minh được tài sản có rủi ro. Số dư AVAX được hiển thị riêng.
 
 ## Kết nối ngoài
 
@@ -26,7 +26,7 @@ Mở http://localhost:3001. Chọn **Thử dữ liệu mẫu**, mở finding và
 
 Chạy `npm run smoke:gemini -- --live` từ `backend/` khi ba biến Gemini đã được cấu hình. Script gửi đúng một mẫu Solidity cố định và chỉ in kết quả rút gọn.
 
-Để kiểm thử ghi nhận thật, dùng một registry đã xác minh và một hợp đồng demo an toàn mà nhóm có quyền rà soát. Nhập mã nguồn và địa chỉ tương ứng, đối chiếu báo cáo, score và hash, xác nhận trong ví Fuji rồi xem giao dịch. Chỉ khi receipt thành công có event khớp, dashboard mới hiển thị đã ghi nhận. Xem [địa chỉ triển khai](../contracts/DEPLOYED_ADDRESSES.md).
+Để kiểm thử ghi nhận thật, dùng một registry đã xác minh và một hợp đồng demo an toàn mà nhóm có quyền rà soát. Nhập mã nguồn và địa chỉ tương ứng, dùng review Gemini và kiểm tra có finding `potential-issue`, đối chiếu báo cáo, score và hash, xác nhận trong ví Fuji rồi xem giao dịch. Chỉ khi receipt thành công có event khớp, dashboard mới hiển thị đã ghi nhận. Xem [địa chỉ triển khai](../contracts/DEPLOYED_ADDRESSES.md).
 
 ## Đóng gói
 

@@ -71,7 +71,7 @@ cp .env.example .env
 | `PORT` | `3001` | Không | Cổng lắng nghe HTTP Server (1–65535). |
 | `FUJI_RPC_URL` | `https://api.avax-test.network/ext/bc/C/rpc` | Không | Endpoint RPC mạng Avalanche Fuji Testnet (Chain ID 43113). |
 | `LLM_PROVIDER` | *(trống)* | Tùy chọn | Provider LLM sử dụng khi bật review (hiện hỗ trợ `gemini`). |
-| `LLM_MODEL` | *(trống)* | Bắt buộc khi bật `LLM_PROVIDER` | Model ID khai báo rõ ràng (ví dụ `gemini-2.5-flash`); không hardcode model mặc định. |
+| `LLM_MODEL` | *(trống)* | Bắt buộc khi bật `LLM_PROVIDER` | Model ID khai báo rõ ràng (ví dụ `gemini-3.5-flash`). |
 | `LLM_API_KEY` | *(trống)* | Bắt buộc khi bật `LLM_PROVIDER` | API key cho provider LLM (truyền qua header `x-goog-api-key`, không gắn vào URL). |
 | `CORS_ORIGIN` | `http://localhost:3000` | Không | Origin được phép truy cập Dashboard (hỗ trợ phân tách bằng dấu phẩy). |
 
@@ -192,7 +192,7 @@ Module `src/rpc/context.ts` cung cấp hàm đọc trạng thái on-chain trên 
     ```
   - **Nhánh Source Analysis:**
     - Trả report đã lưu kèm Keccak-256 hash. Có thể bật Gemini theo từng yêu cầu khi backend đã cấu hình provider.
-  - Xem chi tiết toàn bộ các trường hợp request/response và mã lỗi tại [docs/api-examples.md](file:///c:/Users/Admin/avalanche-security-triage/docs/api-examples.md).
+  - Xem chi tiết toàn bộ các trường hợp request/response và mã lỗi tại [docs/api-examples.md](../docs/api-examples.md).
 
 ---
 
