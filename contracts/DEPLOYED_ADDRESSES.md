@@ -17,6 +17,8 @@
 
 The Fuji receipt confirms successful contract creation. The deployed runtime bytecode matches the local Solidity 0.8.20 build of `AvaTriageRegistry`.
 
+The [registry smoke transaction](https://testnet.snowtrace.io/tx/0xc6e222e40e7c3fa43adfa5583bda1fe9c583c99323234c78a5ab2a3c731cccc4) recorded attestation ID `0` in block `61344940`. The receipt event and registry entry match the saved report hash `0xcf9bb45443f2da8f0ecfa4321f05d525419c706f79b6a10b2af1b1ea6a6061af`, priority score `0`, and empty `ipfsUri`. This smoke test called the registry directly.
+
 ## How to Deploy to Fuji
 
 1. Copy `contracts/.env.example` to `contracts/.env` and set `DEPLOYER_PRIVATE_KEY` (funded with Fuji test AVAX).
