@@ -265,6 +265,6 @@ Module `src/analysis/triage` thiết lập ranh giới kiểm soát an toàn cho
   - Script không nhận đường dẫn file, source tùy ý hay địa chỉ ví từ CLI; chỉ in model ID, số candidate đã review, thời gian thực thi và kết quả (`PASS` / `FAIL` / `DRY_RUN`), tuyệt đối không in API key, prompt, source hay response thô.
   - Chỉ `PASS` khi candidate floating pragma (`RULE-PRAGMA-006`) có assessment hợp lệ và `evidenceReferences` khớp; trường hợp JSON hợp lệ nhưng bỏ sót candidate sẽ bị báo `FAIL (MISSING_ASSESSMENT)`.
 - **Chống lộ thông tin lỗi:** `CandidateTriageService` không bao giờ echo `err.message` thô từ adapter và không echo key/value/ID/evidenceRef do model trả về trong thông báo lỗi hay mảng `issues`.
-- **Kiểm thử Offline & Trạng thái Live:** Toàn bộ kiểm thử hiện tại dùng `MockLlmAdapter` và fake `fetch` hoàn toàn offline. Bước 13 tiếp tục giữ trạng thái `[-]` cho đến khi có bằng chứng chạy `smoke:gemini -- --live` với provider thật. API phân tích tĩnh hoạt động kể cả khi provider chưa cấu hình.
+- **Kiểm thử Gemini:** Unit test dùng `MockLlmAdapter` và fake `fetch`. `smoke:gemini -- --live` và `POST /api/analyze` đã chạy thành công với `LLM_MODEL=gemini-3.5-flash-lite`. API phân tích tĩnh hoạt động kể cả khi provider chưa cấu hình.
 
 Xem [hướng dẫn demo và triển khai](../docs/DEMO.md) để cấu hình registry Fuji và thư mục lưu snapshot.
