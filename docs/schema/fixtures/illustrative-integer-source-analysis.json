@@ -1,0 +1,88 @@
+{
+  "mode": "source-analysis",
+  "report": {
+    "targetContract": {
+      "address": "0x5462D6Bcf9E7C030364d276d493a7F9D0388d754",
+      "network": "Avalanche Fuji Testnet",
+      "chainId": 43113,
+      "balanceAvax": "125.5",
+      "isContract": true,
+      "bytecodeSize": 4120,
+      "owner": "0x1234567890123456789012345678901234567890",
+      "isPaused": false,
+      "queriedAt": "2026-11-17T16:00:00.000Z",
+      "status": "available"
+    },
+    "summary": {
+      "totalVulnerabilities": 2,
+      "criticalCount": 2,
+      "highCount": 0,
+      "mediumCount": 0,
+      "lowCount": 0,
+      "priorityScore": 97
+    },
+    "findings": [
+      {
+        "id": "VULN-001",
+        "ruleId": "RULE-ACCESS-002",
+        "title": "Missing Access Control on Emergency Drain",
+        "function": "emergencyDrain()",
+        "visibility": "public",
+        "modifiers": [],
+        "scores": {
+          "exploitability": 100,
+          "exposure": 100,
+          "assetImpact": 90,
+          "priorityScore": 97
+        },
+        "severity": "CRITICAL",
+        "description": "Anyone can call emergencyDrain and sweep contract balance to an arbitrary address without onlyOwner restriction.",
+        "evidence": [
+          "Function visibility is public",
+          "No msg.sender check or onlyOwner modifier present"
+        ],
+        "confidence": "HIGH",
+        "patchDiff": "--- a/contracts/Vault.sol\n+++ b/contracts/Vault.sol\n@@ -25,2 +25,2 @@\n-    function emergencyDrain() external {\n+    function emergencyDrain() external onlyOwner {",
+        "liveContext": {
+          "status": "available",
+          "fundsAtRisk": "125.5 AVAX",
+          "isPubliclyCallable": true,
+          "isPaused": false
+        }
+      },
+      {
+        "id": "VULN-002",
+        "ruleId": "RULE-REENTRANCY-001",
+        "title": "Unchecked Reentrancy in withdraw() Function",
+        "function": "withdraw(uint256 amount)",
+        "visibility": "external",
+        "modifiers": [],
+        "scores": {
+          "exploitability": 95,
+          "exposure": 100,
+          "assetImpact": 90,
+          "priorityScore": 95
+        },
+        "severity": "CRITICAL",
+        "description": "The function performs an external transfer of native AVAX before updating the user balance mapping, enabling cross-function reentrancy.",
+        "evidence": [
+          "External call payable(msg.sender).call{value: amount} before balance update",
+          "Absence of nonReentrant modifier"
+        ],
+        "confidence": "HIGH",
+        "patchDiff": "--- a/contracts/Vault.sol\n+++ b/contracts/Vault.sol\n@@ -15,3 +15,3 @@\n-        (bool s, ) = msg.sender.call{value: amount}(\"\");\n-        balances[msg.sender] -= amount;\n+        balances[msg.sender] -= amount;\n+        (bool s, ) = msg.sender.call{value: amount}(\"\");",
+        "liveContext": {
+          "status": "available",
+          "fundsAtRisk": "125.5 AVAX",
+          "isPubliclyCallable": true,
+          "isPaused": false
+        }
+      }
+    ],
+    "queriedAt": "2026-11-17T16:00:00.000Z"
+  },
+  "attestation": {
+    "status": "NOT_ATTESTABLE",
+    "disabledReason": "Registry contract chưa được cấu hình hoặc chưa deploy trên Avalanche Fuji Testnet"
+  }
+}

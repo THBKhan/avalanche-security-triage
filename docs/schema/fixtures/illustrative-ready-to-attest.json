@@ -1,0 +1,61 @@
+{
+  "mode": "source-analysis",
+  "report": {
+    "targetContract": {
+      "address": "0x5462D6Bcf9E7C030364d276d493a7F9D0388d754",
+      "network": "Avalanche Fuji Testnet",
+      "chainId": 43113,
+      "balanceAvax": "125.5",
+      "isContract": true,
+      "bytecodeSize": 4120,
+      "owner": "0x1234567890123456789012345678901234567890",
+      "isPaused": false,
+      "queriedAt": "2026-11-17T16:00:00.000Z",
+      "status": "available"
+    },
+    "summary": {
+      "totalVulnerabilities": 1,
+      "criticalCount": 1,
+      "highCount": 0,
+      "mediumCount": 0,
+      "lowCount": 0,
+      "priorityScore": 97
+    },
+    "findings": [
+      {
+        "id": "VULN-001",
+        "ruleId": "RULE-ACCESS-002",
+        "title": "Missing Access Control on Emergency Drain",
+        "function": "emergencyDrain()",
+        "visibility": "public",
+        "modifiers": [],
+        "scores": {
+          "exploitability": 100,
+          "exposure": 100,
+          "assetImpact": 90,
+          "priorityScore": 97
+        },
+        "severity": "CRITICAL",
+        "description": "Anyone can call emergencyDrain and sweep contract balance to an arbitrary address without onlyOwner restriction.",
+        "evidence": [
+          "Function visibility is public",
+          "No msg.sender check or onlyOwner modifier present"
+        ],
+        "confidence": "HIGH",
+        "patchDiff": "--- a/contracts/Vault.sol\n+++ b/contracts/Vault.sol\n@@ -25,2 +25,2 @@\n-    function emergencyDrain() external {\n+    function emergencyDrain() external onlyOwner {",
+        "liveContext": {
+          "status": "available",
+          "fundsAtRisk": "125.5 AVAX",
+          "isPubliclyCallable": true,
+          "isPaused": false
+        }
+      }
+    ],
+    "queriedAt": "2026-11-17T16:00:00.000Z"
+  },
+  "attestation": {
+    "status": "READY_TO_ATTEST",
+    "reportHash": "0xd3f8c4e58b1086e3fdf7183e29f52f4167e43697921a8f98c76fa968e734bc1a",
+    "ipfsUri": ""
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://avalanche-security-triage/schemas/analyze-request.schema.json",
+  "title": "AnalyzeRequest",
+  "description": "Request payload for POST /api/analyze endpoint. Accepts Solidity sourceCode, contractAddress, or both. Must provide at least one non-empty value.",
+  "type": "object",
+  "properties": {
+    "sourceCode": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^\\s*\\S[\\s\\S]*$",
+      "maxLength": 204800,
+      "description": "Solidity source code content to analyze. Must contain non-whitespace characters. Maximum 204,800 characters (character count in JSON; HTTP body byte size is checked separately at runtime)."
+    },
+    "contractAddress": {
+      "type": "string",
+      "pattern": "^0x[0-9a-fA-F]{40}$",
+      "not": {
+        "pattern": "^0x0{40}$"
+      },
+      "description": "Avalanche Fuji target contract address (0x-prefixed 40 hex characters, excluding zero address)."
+    }
+  },
+  "anyOf": [
+    {
+      "required": ["sourceCode"]
+    },
+    {
+      "required": ["contractAddress"]
+    }
+  ],
+  "additionalProperties": false
+}
