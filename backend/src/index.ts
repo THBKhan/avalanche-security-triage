@@ -9,7 +9,8 @@ import { createApp } from "./app";
 const config = loadConfig();
 const app = createApp(config);
 
-const server = app.listen(config.port, () => {
+const host = process.env.APP_HOST?.trim() || "127.0.0.1";
+const server = app.listen(config.port, host, () => {
   console.log(`Backend triage server listening on port ${config.port}`);
 });
 

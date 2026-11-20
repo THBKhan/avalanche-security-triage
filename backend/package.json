@@ -10,7 +10,9 @@
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/**/*.test.ts",
-    "test:rpc": "tsx src/scripts/test-rpc.ts"
+    "test:rpc": "tsx src/scripts/test-rpc.ts",
+    "smoke:gemini": "tsx src/scripts/smoke-gemini.ts",
+    "verify:report": "tsx src/scripts/verify-report.ts"
   },
   "dependencies": {
     "@solidity-parser/parser": "^0.20.2",

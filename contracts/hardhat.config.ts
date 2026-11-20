@@ -1,12 +1,13 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import * as dotenv from "dotenv";
+import { resolve } from "node:path";
 
-dotenv.config();
+dotenv.config({ path: resolve(__dirname, ".env") });
 
 const FUJI_RPC_URL =
   process.env.AVALANCHE_FUJI_RPC_URL || "https://api.avax-test.network/ext/bc/C/rpc";
-const DEPLOYER_PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY || "";
+const DEPLOYER_PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY?.trim() ?? "";
 
 const config: HardhatUserConfig = {
   solidity: {

@@ -1,16 +1,17 @@
 /**
  * POST /api/analyze Route Handler
- * Implements address-only triage inspection via OnChainContextReader.
- * Returns 501 for source analysis during current incremental phase.
+ * Validates requests and dispatches to source analysis or Fuji context inspection.
  */
 
 import { Request, Response, NextFunction } from "express";
 import { OnChainContextReader, RpcContextError } from "../rpc/context";
 import { RequestValidationResult } from "./schema";
+import type { SourceReportService } from "./source-report";
 
 export function createAnalyzeHandler(
-  reader: OnChainContextReader,
-  validateRequest: (data: unknown) => RequestValidationResult
+  reader: Pick<OnChainContextReader, "fetchContext">,
+  validateRequest: (data: unknown) => RequestValidationResult,
+  sourceReport: SourceReportService,
 ) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -40,17 +41,10 @@ export function createAnalyzeHandler(
         return;
       }
 
-      // 2. Temporary 501 Not Implemented for requests containing sourceCode
+      // Source assessment and read-only address inspection have separate outcomes.
       if (typeof req.body.sourceCode === "string" && req.body.sourceCode.trim().length > 0) {
-        res.status(501).json({
-          error: {
-            code: "SOURCE_ANALYSIS_NOT_IMPLEMENTED",
-            message: "Source code analysis is not yet implemented at this development phase",
-            details: {
-              note: "Temporary 501 response during incremental development. Use address-only requests for on-chain context triage.",
-            },
-          },
-        });
+        const result = await sourceReport(req.body);
+        res.status(result.status).json(result.body);
         return;
       }
 
@@ -78,13 +72,7 @@ export function createAnalyzeHandler(
           return;
         }
 
-        if (
-          err.code === "RPC_TIMEOUT" ||
-          err.code === "RATE_LIMITED" ||
-          err.code === "WRONG_NETWORK" ||
-          err.code === "RPC_ERROR" ||
-          err.code === "REVERT"
-        ) {
+        if (isUpstreamRpcError(err)) {
           res.status(502).json({
             error: {
               code: "UPSTREAM_RPC_ERROR",
@@ -112,4 +100,9 @@ export function createAnalyzeHandler(
       next(err);
     }
   };
+}
+
+export function isUpstreamRpcError(err: unknown): boolean {
+  return err instanceof RpcContextError &&
+    ["RPC_TIMEOUT", "RATE_LIMITED", "WRONG_NETWORK", "RPC_ERROR", "REVERT"].includes(err.code);
 }

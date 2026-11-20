@@ -41,7 +41,7 @@ test("App initializes and runs health check cleanly when LLM_API_KEY is missing"
   assert.equal(res.body.status, "ok");
 });
 
-test("CORS allows requests from declared origin", async () => {
+test("CORS allows requests from declared origin and from the dashboard origin", async () => {
   const app = createApp(testConfig);
   const res = await request(app)
     .get("/health")
@@ -49,6 +49,14 @@ test("CORS allows requests from declared origin", async () => {
 
   assert.equal(res.status, 200);
   assert.equal(res.headers["access-control-allow-origin"], "http://localhost:3000");
+
+  const module = await request(app)
+    .get("/dashboard.mjs")
+    .set("Host", "localhost:3001")
+    .set("Origin", "http://localhost:3001");
+  assert.equal(module.status, 200);
+  assert.match(module.headers["content-type"], /javascript/);
+  assert.equal(module.headers["access-control-allow-origin"], "http://localhost:3001");
 });
 
 test("CORS blocks requests from unauthorized origin", async () => {

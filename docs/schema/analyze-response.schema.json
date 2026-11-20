@@ -40,7 +40,12 @@
           "description": "Final integer priority score computed strictly by backend according to confirmed rounding rules."
         }
       },
-      "required": ["exploitability", "exposure", "assetImpact", "priorityScore"],
+      "required": [
+        "exploitability",
+        "exposure",
+        "assetImpact",
+        "priorityScore"
+      ],
       "additionalProperties": false
     },
     "LiveFindingContext": {
@@ -49,7 +54,11 @@
       "properties": {
         "status": {
           "type": "string",
-          "enum": ["available", "unavailable", "unspecified"]
+          "enum": [
+            "available",
+            "unavailable",
+            "unspecified"
+          ]
         },
         "fundsAtRisk": {
           "type": "string"
@@ -58,13 +67,18 @@
           "type": "boolean"
         },
         "isPaused": {
-          "type": ["boolean", "null"]
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "note": {
           "type": "string"
         }
       },
-      "required": ["status"],
+      "required": [
+        "status"
+      ],
       "additionalProperties": false
     },
     "Finding": {
@@ -84,7 +98,13 @@
         },
         "visibility": {
           "type": "string",
-          "enum": ["external", "public", "internal", "private", "n/a"]
+          "enum": [
+            "external",
+            "public",
+            "internal",
+            "private",
+            "n/a"
+          ]
         },
         "modifiers": {
           "type": "array",
@@ -97,7 +117,12 @@
         },
         "severity": {
           "type": "string",
-          "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW"]
+          "enum": [
+            "CRITICAL",
+            "HIGH",
+            "MEDIUM",
+            "LOW"
+          ]
         },
         "description": {
           "type": "string"
@@ -110,7 +135,12 @@
         },
         "confidence": {
           "type": "string",
-          "enum": ["HIGH", "MEDIUM", "LOW", "INSUFFICIENT_EVIDENCE"]
+          "enum": [
+            "HIGH",
+            "MEDIUM",
+            "LOW",
+            "INSUFFICIENT_EVIDENCE"
+          ]
         },
         "patchDiff": {
           "type": "string",
@@ -118,6 +148,51 @@
         },
         "liveContext": {
           "$ref": "#/$defs/LiveFindingContext"
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "review": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "verdict",
+            "confidence",
+            "explanation",
+            "limitations",
+            "remediation"
+          ],
+          "properties": {
+            "verdict": {
+              "enum": [
+                "potential-issue",
+                "dismissed",
+                "needs-review"
+              ]
+            },
+            "confidence": {
+              "enum": [
+                "HIGH",
+                "MEDIUM",
+                "LOW"
+              ]
+            },
+            "explanation": {
+              "type": "string"
+            },
+            "limitations": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "remediation": {
+              "type": "string"
+            }
+          }
         }
       },
       "required": [
@@ -163,11 +238,17 @@
           "minimum": 0
         },
         "owner": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^0x[0-9a-fA-F]{40}$"
         },
         "isPaused": {
-          "type": ["boolean", "null"]
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "queriedAt": {
           "type": "string",
@@ -175,13 +256,19 @@
         },
         "status": {
           "type": "string",
-          "enum": ["available", "unavailable", "unspecified"]
+          "enum": [
+            "available",
+            "unavailable",
+            "unspecified"
+          ]
         },
         "warning": {
           "type": "string"
         }
       },
-      "required": ["status"],
+      "required": [
+        "status"
+      ],
       "allOf": [
         {
           "if": {
@@ -257,7 +344,12 @@
               "type": "integer",
               "minimum": 0,
               "maximum": 100,
-              "description": "Final report-level priority score as integer. Calculation rule across multiple findings pending Alex/hiedan confirmation."
+              "description": "Highest integer priority score among candidates reviewed as potential-issue, or zero when none qualify."
+            },
+            "scoredFindingCount": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of candidates eligible for the report score."
             }
           },
           "required": [
@@ -279,9 +371,58 @@
         "queriedAt": {
           "type": "string",
           "format": "date-time"
+        },
+        "sourceDigest": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{64}$"
+        },
+        "analyzedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "policy": {
+          "type": "string"
+        },
+        "reviewMode": {
+          "enum": [
+            "static",
+            "gemini"
+          ]
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "coverage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "analyzedRules",
+            "unanalyzedRules"
+          ],
+          "properties": {
+            "analyzedRules": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "unanalyzedRules": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
         }
       },
-      "required": ["targetContract", "summary", "findings"],
+      "required": [
+        "targetContract",
+        "summary",
+        "findings"
+      ],
       "additionalProperties": false
     },
     "AttestationMetadata": {
@@ -303,15 +444,28 @@
         },
         "status": {
           "type": "string",
-          "enum": ["READY_TO_ATTEST", "NOT_ATTESTABLE", "DISABLED"]
+          "enum": [
+            "READY_TO_ATTEST",
+            "NOT_ATTESTABLE",
+            "DISABLED"
+          ]
         },
         "disabledReason": {
           "type": "string",
           "minLength": 1,
           "description": "Human-readable explanation when attestation is NOT_ATTESTABLE or DISABLED."
+        },
+        "registryAddress": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{40}$",
+          "not": {
+            "const": "0x0000000000000000000000000000000000000000"
+          }
         }
       },
-      "required": ["status"],
+      "required": [
+        "status"
+      ],
       "allOf": [
         {
           "if": {
@@ -322,19 +476,27 @@
             }
           },
           "then": {
-            "required": ["reportHash", "ipfsUri"]
+            "required": [
+              "reportHash",
+              "ipfsUri"
+            ]
           }
         },
         {
           "if": {
             "properties": {
               "status": {
-                "enum": ["NOT_ATTESTABLE", "DISABLED"]
+                "enum": [
+                  "NOT_ATTESTABLE",
+                  "DISABLED"
+                ]
               }
             }
           },
           "then": {
-            "required": ["disabledReason"]
+            "required": [
+              "disabledReason"
+            ]
           }
         }
       ],
@@ -354,7 +516,11 @@
           "$ref": "#/$defs/AttestationMetadata"
         }
       },
-      "required": ["mode", "report", "attestation"],
+      "required": [
+        "mode",
+        "report",
+        "attestation"
+      ],
       "allOf": [
         {
           "if": {
@@ -382,7 +548,9 @@
                         }
                       }
                     },
-                    "required": ["address"]
+                    "required": [
+                      "address"
+                    ]
                   }
                 }
               }
@@ -415,11 +583,18 @@
               "minLength": 1
             }
           },
-          "required": ["status", "disabledReason"],
+          "required": [
+            "status",
+            "disabledReason"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["mode", "targetContract", "attestation"],
+      "required": [
+        "mode",
+        "targetContract",
+        "attestation"
+      ],
       "additionalProperties": false
     },
     "ApiErrorResponse": {
@@ -441,7 +616,8 @@
                 "RATE_LIMITED",
                 "WRONG_NETWORK",
                 "AI_MODEL_ERROR",
-                "SOURCE_ANALYSIS_NOT_IMPLEMENTED",
+                "INVALID_SOURCE",
+                "AI_MODEL_UNAVAILABLE",
                 "INTERNAL_SERVER_ERROR"
               ]
             },
@@ -452,11 +628,16 @@
               "type": "object"
             }
           },
-          "required": ["code", "message"],
+          "required": [
+            "code",
+            "message"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["error"],
+      "required": [
+        "error"
+      ],
       "additionalProperties": false
     }
   }

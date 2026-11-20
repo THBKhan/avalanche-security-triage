@@ -46,36 +46,15 @@ Content-Type: application/json
 
 ---
 
-## 2. Yêu Cầu Có Mã Nguồn (Tạm Thời Chưa Triển Khai) - HTTP 501
+## 2. Yêu cầu có mã nguồn
 
-Trong giai đoạn này (chưa triển khai Bước 13), bất kỳ yêu cầu nào chứa `sourceCode` (kể cả source-only hay source kèm address) đều được validate cú pháp hợp lệ và trả về tạm thời mã HTTP 501 `SOURCE_ANALYSIS_NOT_IMPLEMENTED`. Không bỏ qua source để trả về giả lập context-only.
-
-### Request
-```http
-POST /api/analyze HTTP/1.1
-Host: localhost:3001
-Content-Type: application/json
-
-{
-  "sourceCode": "pragma solidity ^0.8.20; contract Vault { address public owner; }",
-  "contractAddress": "0x5462D6Bcf9E7C030364d276d493a7F9D0388d754"
-}
-```
-
-### Response (`501 Not Implemented`)
 ```json
-{
-  "error": {
-    "code": "SOURCE_ANALYSIS_NOT_IMPLEMENTED",
-    "message": "Source code analysis is not yet implemented at this development phase",
-    "details": {
-      "note": "Temporary 501 response during incremental development. Use address-only requests for on-chain context triage."
-    }
-  }
-}
+{ "sourceCode": "pragma solidity ^0.8.20; contract Demo {}" }
 ```
 
----
+HTTP 200 có `mode: "source-analysis"`. Mẫu này tạo một finding floating pragma với điểm riêng 7, điểm cấp báo cáo 0 vì chưa có verdict `potential-issue`, và `attestation.status: "NOT_ATTESTABLE"` cùng hash của snapshot đã lưu.
+
+Có thể thêm `contractAddress` để kèm ngữ cảnh Fuji. Nếu RPC lỗi, báo cáo source vẫn trả HTTP 200 với `report.targetContract.status: "unavailable"`. Trường `reviewWithGemini: true` yêu cầu người dùng đồng ý gửi source cho Gemini. Nếu chưa cấu hình, API trả 503 `AI_MODEL_UNAVAILABLE`; lỗi provider trả 502 `AI_MODEL_ERROR`. Source sai cú pháp trả 400 `INVALID_SOURCE`.
 
 ## 3. Các Trường Hợp Lỗi Phổ Biến
 

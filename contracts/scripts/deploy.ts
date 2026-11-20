@@ -3,6 +3,18 @@ import * as fs from "fs";
 import * as path from "path";
 
 async function main() {
+  const accounts = network.config.accounts;
+  if (network.name === "fuji" && Array.isArray(accounts) && accounts.length === 0) {
+    throw new Error(
+      "No Fuji deployer configured. Set DEPLOYER_PRIVATE_KEY in contracts/.env using a dedicated Fuji test wallet."
+    );
+  }
+
+  const [deployer] = await ethers.getSigners();
+  if (!deployer) {
+    throw new Error(`No signer available on network "${network.name}".`);
+  }
+
   const chainId = Number((await ethers.provider.getNetwork()).chainId);
   const allowedChains = [31337, 43113]; // Hardhat local & Avalanche Fuji Testnet
 
@@ -12,7 +24,6 @@ async function main() {
     );
   }
 
-  const [deployer] = await ethers.getSigners();
   const balance = await ethers.provider.getBalance(deployer.address);
 
   console.log("Deploying AvaTriageRegistry...");

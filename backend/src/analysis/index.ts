@@ -28,6 +28,7 @@ export * from "./rules/tx-origin";
 export * from "./triage/types";
 export * from "./triage/prompt";
 export * from "./triage/adapter";
+export * from "./triage/gemini-adapter";
 export * from "./triage/service";
 
 /**
@@ -94,9 +95,6 @@ export function analyzeSoliditySource(sourceCode: string): AnalysisResult {
   );
   limitations.push(
     "Parser supports standard Solidity syntax within @solidity-parser/parser capabilities; experimental or non-standard syntax may not be parsed."
-  );
-  limitations.push(
-    "Tri-pillar scoring, severity classification, and report-level aggregation are deferred to subsequent pipeline stages."
   );
   limitations.push(
     "Rule checks not implemented in the current static analysis module are deferred to subsequent analysis stages."

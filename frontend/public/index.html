@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10121a">
+  <title>Avalanche Triage</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/dashboard.mjs"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="mark" aria-hidden="true">▲</span> Avalanche<span class="brand-soft">Triage</span></div>
+    <div class="chain"><span aria-hidden="true"></span> Fuji Testnet</div>
+  </header>
+  <main>
+    <div class="intro">
+      <div><h1>Rà soát smart contract</h1><p>Kiểm tra Solidity và đối chiếu ngữ cảnh trên Avalanche Fuji.</p></div>
+      <button id="sample" class="secondary" type="button">Thử dữ liệu mẫu</button>
+    </div>
+    <div class="workspace">
+      <section class="panel input-panel" aria-labelledby="input-title">
+        <h2 id="input-title">Đầu vào</h2>
+        <form id="analyze">
+          <label for="address">Địa chỉ hợp đồng <span>Tùy chọn</span></label>
+          <input id="address" placeholder="0x…" autocomplete="off" spellcheck="false" maxlength="42">
+          <label for="source">Mã Solidity <span>Tùy chọn</span></label>
+          <textarea id="source" rows="13" spellcheck="false" maxlength="204800" placeholder="// Dán mã Solidity tại đây"></textarea>
+          <label class="check" id="gemini-option" hidden><input id="gemini" type="checkbox">Gửi mã cho Gemini để hỗ trợ review</label>
+          <p class="muted hint">Cung cấp mã, địa chỉ hoặc cả hai. Chỉ nhập địa chỉ sẽ trả ngữ cảnh on-chain.</p>
+          <button id="submit" class="primary" type="submit">Phân tích</button>
+        </form>
+      </section>
+      <section class="panel results" aria-labelledby="result-title">
+        <div class="section-head"><h2 id="result-title">Báo cáo</h2><span id="mode" class="mode" hidden></span></div>
+        <p id="status" class="notice" role="status" aria-live="polite">Kết quả sẽ xuất hiện sau khi phân tích.</p>
+        <div id="result" hidden>
+          <div id="metrics" class="metrics"></div>
+          <div id="context" class="context" hidden></div>
+          <div id="finding-section" hidden>
+            <div class="section-head finding-head">
+              <h3>Phát hiện cần rà soát</h3>
+              <select id="severity" aria-label="Lọc theo độ ưu tiên">
+                <option value="ALL">Mọi mức</option><option>CRITICAL</option><option>HIGH</option><option>MEDIUM</option><option>LOW</option>
+              </select>
+            </div>
+            <div id="findings"></div>
+          </div>
+          <details id="limitations" class="limits" hidden>
+            <summary>Phạm vi và giới hạn</summary><ul id="limit-list"></ul>
+          </details>
+          <div class="section-head actions">
+            <a id="download" class="secondary button-link" download="avalanche-triage.json">Tải báo cáo JSON</a>
+            <button id="attest" type="button" class="primary" disabled>Ghi nhận trên Fuji</button>
+          </div>
+          <p id="attest-note" class="muted"></p>
+          <p id="hash" class="hash" hidden></p>
+          <div id="wallet-status" role="status" aria-live="polite"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+  <dialog id="confirm" aria-labelledby="confirm-title">
+    <form method="dialog">
+      <h2 id="confirm-title">Kiểm tra trước khi ký</h2>
+      <p>Registry sẽ lưu địa chỉ mục tiêu, điểm và hash của báo cáo hiện tại.</p>
+      <dl id="tx-summary"></dl>
+      <label class="check"><input id="ack" type="checkbox" required>Tôi đã kiểm tra mã nguồn tương ứng với địa chỉ mục tiêu.</label>
+      <div class="section-head actions">
+        <button class="secondary" type="button" id="cancel-attest">Hủy</button>
+        <button class="primary" type="submit" value="confirm">Tiếp tục trong ví</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>

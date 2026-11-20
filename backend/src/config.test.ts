@@ -7,7 +7,45 @@ test("loadConfig returns default values when env is empty", () => {
   assert.equal(config.port, 3001);
   assert.equal(config.fujiRpcUrl, "https://api.avax-test.network/ext/bc/C/rpc");
   assert.equal(config.corsOrigin, "http://localhost:3000");
+  assert.equal(config.llmProvider, undefined);
+  assert.equal(config.llmModel, undefined);
   assert.equal(config.llmApiKey, undefined);
+});
+
+test("loadConfig parses LLM_PROVIDER=gemini and explicit LLM_MODEL without hardcoded default", () => {
+  const config = loadConfig({
+    LLM_PROVIDER: "  GEMINI ",
+    LLM_MODEL: "gemini-2.5-flash",
+    LLM_API_KEY: "test-key",
+  });
+  assert.equal(config.llmProvider, "gemini");
+  assert.equal(config.llmModel, "gemini-2.5-flash");
+  assert.equal(config.llmApiKey, "test-key");
+
+  // When only provider is set, llmModel stays undefined (no hardcoded default)
+  const providerOnly = loadConfig({ LLM_PROVIDER: "gemini" });
+  assert.equal(providerOnly.llmProvider, "gemini");
+  assert.equal(providerOnly.llmModel, undefined);
+});
+
+test("loadConfig rejects unsupported LLM_PROVIDER and malformed LLM_MODEL without echoing values", () => {
+  try {
+    loadConfig({ LLM_PROVIDER: "secret-provider-xyz" });
+    assert.fail("Should have thrown");
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    assert.match(msg, /Invalid LLM_PROVIDER/);
+    assert.ok(!msg.includes("secret-provider-xyz"));
+  }
+
+  try {
+    loadConfig({ LLM_MODEL: "../etc/passwd" });
+    assert.fail("Should have thrown");
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    assert.match(msg, /Invalid LLM_MODEL/);
+    assert.ok(!msg.includes("passwd"));
+  }
 });
 
 test("loadConfig parses custom valid port and URL", () => {

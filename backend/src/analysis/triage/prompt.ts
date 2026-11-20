@@ -9,7 +9,7 @@ import path from "path";
 import { RuleCandidate, SourceAnalysisDraft } from "../types";
 import { TargetContractContext } from "../../rpc/context";
 
-export const TRIAGE_PROMPT_VERSION = "2026-11-candidate-review-v1";
+export const TRIAGE_PROMPT_VERSION = "2026-11-candidate-review-v1.1";
 
 /**
  * Locate candidate_review_prompt.txt using relative paths first, prioritizing dist.

@@ -224,27 +224,33 @@ test("POST /api/analyze: Lỗi bất ngờ trả 500, không rò rỉ secret gi�
   assert.equal(isValid, true, `Error response violates schema: ${JSON.stringify(validateResponse.errors)}`);
 });
 
-test("POST /api/analyze: Source-only và source + address trả 501 SOURCE_ANALYSIS_NOT_IMPLEMENTED và không gọi reader", async () => {
-  let readerCalled = false;
-  const mockReader = {
+test("POST /api/analyze: source-only persists its report and source plus RPC failure keeps the report", async () => {
+  let readerCalls = 0;
+  let saves = 0;
+  const reader = {
     fetchContext: async () => {
-      readerCalled = true;
-      throw new Error("Reader should not have been called for source analysis");
+      readerCalls++;
+      throw new RpcContextError("RPC_TIMEOUT", "Private diagnostic");
     },
-  } as unknown as OnChainContextReader;
-
-  const app = createApp(testConfig, { reader: mockReader });
-
-  // 1. Source-only
+  };
+  const app = createApp(testConfig, {
+    reader,
+    snapshots: { save: async () => { saves++; } },
+  });
   const resSourceOnly = await request(app)
     .post("/api/analyze")
     .send({ sourceCode: "pragma solidity ^0.8.0; contract Vault {}" });
 
-  assert.equal(resSourceOnly.status, 501);
-  assert.equal(resSourceOnly.body.error?.code, "SOURCE_ANALYSIS_NOT_IMPLEMENTED");
+  assert.equal(resSourceOnly.status, 200);
+  assert.equal(resSourceOnly.body.mode, "source-analysis");
+  assert.equal(resSourceOnly.body.report.summary.priorityScore, 0);
+  assert.equal(resSourceOnly.body.report.summary.scoredFindingCount, 0);
+  assert.equal(resSourceOnly.body.report.findings[0].scores.priorityScore, 7);
+  assert.equal(resSourceOnly.body.attestation.status, "NOT_ATTESTABLE");
+  assert.equal(readerCalls, 0);
+  assert.equal(saves, 1);
   assert.equal(validateResponse(resSourceOnly.body), true);
 
-  // 2. Source + address
   const resBoth = await request(app)
     .post("/api/analyze")
     .send({
@@ -252,11 +258,11 @@ test("POST /api/analyze: Source-only và source + address trả 501 SOURCE_ANALY
       contractAddress: VALID_ADDRESS,
     });
 
-  assert.equal(resBoth.status, 501);
-  assert.equal(resBoth.body.error?.code, "SOURCE_ANALYSIS_NOT_IMPLEMENTED");
+  assert.equal(resBoth.status, 200);
+  assert.equal(resBoth.body.report.targetContract.status, "unavailable");
   assert.equal(validateResponse(resBoth.body), true);
-
-  assert.equal(readerCalled, false, "Reader must not be called during temporary 501 phase");
+  assert.equal(readerCalls, 1);
+  assert.equal(saves, 2);
 });
 
 test("POST /api/analyze: Hai requests dùng cùng app tái sử dụng reader instance và cache", async () => {

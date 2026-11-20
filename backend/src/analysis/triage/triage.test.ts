@@ -294,13 +294,17 @@ describe("LLM Candidate Review Triage Boundary", () => {
         () => service.reviewCandidates({ sourceCode: SAMPLE_SOURCE, draft: analysis.draft }),
         (err: any) => {
           assert.equal(err.code, "INVALID_MODEL_OUTPUT");
-          assert.ok(err.issues?.some((i: string) => i.includes("priorityScore") || i.includes("unrecognized_keys")));
+          const details = JSON.stringify(err.issues ?? []);
+          assert.ok(details.includes("unrecognized_keys"));
+          // Must NOT echo untrusted model key names
+          assert.ok(!err.message.includes("priorityScore"));
+          assert.ok(!details.includes("priorityScore"));
           return true;
         }
       );
     });
 
-    it("rejects invalid verdicts such as 'confirmed' or 'safe'", async () => {
+    it("rejects invalid verdicts such as 'confirmed' or 'safe' without echoing model value", async () => {
       const analysis = analyzeSoliditySource(SAMPLE_SOURCE);
       assert.equal(analysis.ok, true);
       if (!analysis.ok) return;
@@ -326,12 +330,15 @@ describe("LLM Candidate Review Triage Boundary", () => {
         () => service.reviewCandidates({ sourceCode: SAMPLE_SOURCE, draft: analysis.draft }),
         (err: any) => {
           assert.equal(err.code, "INVALID_MODEL_OUTPUT");
+          const details = JSON.stringify(err.issues ?? []);
+          assert.ok(!err.message.includes("confirmed"));
+          assert.ok(!details.includes("confirmed"));
           return true;
         }
       );
     });
 
-    it("rejects unknown candidateId not present in the draft", async () => {
+    it("rejects unknown candidateId not present in the draft without echoing model string", async () => {
       const analysis = analyzeSoliditySource(SAMPLE_SOURCE);
       assert.equal(analysis.ok, true);
       if (!analysis.ok) return;
@@ -339,7 +346,7 @@ describe("LLM Candidate Review Triage Boundary", () => {
       const payloadUnknownId = JSON.stringify({
         assessments: [
           {
-            candidateId: "cand-999", // Non-existent candidateId
+            candidateId: "cand-999-model-echo", // Non-existent candidateId
             verdict: "potential-issue",
             confidence: "HIGH",
             explanation: "Reviewing invented candidate",
@@ -357,13 +364,15 @@ describe("LLM Candidate Review Triage Boundary", () => {
         () => service.reviewCandidates({ sourceCode: SAMPLE_SOURCE, draft: analysis.draft }),
         (err: any) => {
           assert.equal(err.code, "UNKNOWN_CANDIDATE_ID");
-          assert.ok(err.message.includes("cand-999"));
+          const details = JSON.stringify(err.issues ?? []);
+          assert.ok(!err.message.includes("cand-999-model-echo"));
+          assert.ok(!details.includes("cand-999-model-echo"));
           return true;
         }
       );
     });
 
-    it("rejects duplicate assessment for the same candidateId", async () => {
+    it("rejects duplicate assessment for the same candidateId without echoing model strings", async () => {
       const analysis = analyzeSoliditySource(SAMPLE_SOURCE);
       assert.equal(analysis.ok, true);
       if (!analysis.ok) return;
@@ -397,13 +406,15 @@ describe("LLM Candidate Review Triage Boundary", () => {
         () => service.reviewCandidates({ sourceCode: SAMPLE_SOURCE, draft: analysis.draft }),
         (err: any) => {
           assert.equal(err.code, "DUPLICATE_ASSESSMENT");
-          assert.ok(err.message.includes("cand-0"));
+          const details = JSON.stringify(err.issues ?? []);
+          assert.ok(!err.message.includes("Conflicting duplicate assessment"));
+          assert.ok(!details.includes("Conflicting duplicate assessment"));
           return true;
         }
       );
     });
 
-    it("rejects fabricated evidence references not provided by backend", async () => {
+    it("rejects fabricated evidence references not provided by backend without echoing model string", async () => {
       const analysis = analyzeSoliditySource(SAMPLE_SOURCE);
       assert.equal(analysis.ok, true);
       if (!analysis.ok) return;
@@ -429,7 +440,9 @@ describe("LLM Candidate Review Triage Boundary", () => {
         () => service.reviewCandidates({ sourceCode: SAMPLE_SOURCE, draft: analysis.draft }),
         (err: any) => {
           assert.equal(err.code, "INVALID_EVIDENCE_REFERENCE");
-          assert.ok(err.message.includes("fabricated_evidence_ref"));
+          const details = JSON.stringify(err.issues ?? []);
+          assert.ok(!err.message.includes("fabricated_evidence_ref"));
+          assert.ok(!details.includes("fabricated_evidence_ref"));
           return true;
         }
       );
@@ -553,7 +566,7 @@ describe("LLM Candidate Review Triage Boundary", () => {
       const secretKey = "SECRET_LLM_KEY_DO_NOT_LEAK";
       const service = new CandidateTriageService({
         adapter: new MockLlmAdapter(() => {
-          throw new Error(`Upstream auth failed with key: ${secretKey}`);
+          throw new Error(`Upstream auth failed with key=${secretKey} while processing: ${SAMPLE_SOURCE}`);
         }),
       });
 
@@ -562,8 +575,12 @@ describe("LLM Candidate Review Triage Boundary", () => {
         (err: any) => {
           assert.equal(err.name, "TriageServiceError");
           assert.equal(err.code, "LLM_PROVIDER_ERROR");
-          // Never leaks the source code in error message
-          assert.ok(!err.message.includes(SAMPLE_SOURCE));
+          const serializedDetails = JSON.stringify(err.issues ?? []);
+          assert.ok(!err.message.includes(secretKey), "Error message must not leak secret key");
+          assert.ok(!serializedDetails.includes(secretKey), "Error details must not leak secret key");
+          assert.ok(!err.message.includes(SAMPLE_SOURCE), "Error message must not leak source code");
+          assert.ok(!err.message.includes("VulnerableAuth"), "Error message must not leak source identifiers");
+          assert.ok(!serializedDetails.includes(SAMPLE_SOURCE), "Error details must not leak source code");
           return true;
         }
       );
