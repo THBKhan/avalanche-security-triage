@@ -1,18 +1,11 @@
-# 🖥️ Frontend Dashboard (`/frontend`)
+# Avalanche Triage Dashboard
 
-## Role 3: Risk Matrix Dashboard & On-Chain Attestation UI
+Run `npm ci` and `npm run dev` in `backend/`, then open http://localhost:3001. The Express service serves `public/` and the API on the same origin. The frontend uses browser-native modules and CSS, with no separate install or frontend environment file.
 
-This folder contains the user interface:
+**Thử dữ liệu mẫu** loads a mock report and an editable Solidity example. **Phân tích** submits the form to the real API. **Tải báo cáo JSON** downloads the currently displayed response. Suggested changes are displayed for review.
 
-1. **Contract Inspector**: Submit Solidity code or verified Avalanche Fuji contract address.
-2. **Interactive Risk Matrix**: Displays sorted findings based on real-world Priority Score.
-3. **Patch Diff Viewer**: Visual side-by-side comparison for AI-suggested code fixes.
-4. **On-Chain Attestation Module**: Connects Web3 wallet (Core / MetaMask) to Avalanche Fuji to sign and record audit attestations into `SecurityRegistry.sol`.
+The registry address comes from backend configuration. A compatible injected browser wallet must be on Avalanche Fuji and the selected report must be eligible. The wallet flow checks the receipt and the matching registry event before marking a transaction confirmed.
 
-> 💡 **Quick Start for Frontend Devs:** Use [mock-data.json](../docs/mock-data.json) to render the dashboard immediately without waiting for the backend API!
-
-### Branch
-Work on this module in branch:
-```bash
-git checkout -b feat/frontend-ui
+```powershell
+node --test frontend/wallet.test.mjs
 ```

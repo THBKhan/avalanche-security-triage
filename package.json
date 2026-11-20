@@ -1,0 +1,13 @@
+{
+  "name": "avalanche-security-triage",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-Powered Smart Contract Vulnerability Triage on Avalanche",
+  "scripts": {
+    "validate:schema": "node scripts/validate-schemas.js"
+  },
+  "devDependencies": {
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1"
+  }
+}

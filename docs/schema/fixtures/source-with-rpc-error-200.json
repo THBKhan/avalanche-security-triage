@@ -1,0 +1,51 @@
+{
+  "mode": "source-analysis",
+  "report": {
+    "targetContract": {
+      "address": "0x5462D6Bcf9E7C030364d276d493a7F9D0388d754",
+      "network": "Avalanche Fuji Testnet",
+      "chainId": 43113,
+      "status": "unavailable",
+      "warning": "Không thể kết nối RPC Fuji (timeout/rate-limited). Asset Impact được đánh giá ở mức mặc định không xác minh."
+    },
+    "summary": {
+      "totalVulnerabilities": 1,
+      "criticalCount": 0,
+      "highCount": 1,
+      "mediumCount": 0,
+      "lowCount": 0,
+      "priorityScore": 70
+    },
+    "findings": [
+      {
+        "id": "VULN-001",
+        "ruleId": "RULE-TX-ORIGIN-003",
+        "title": "Authorization via tx.origin",
+        "function": "setOwner(address newOwner)",
+        "visibility": "public",
+        "modifiers": [],
+        "scores": {
+          "exploitability": 75,
+          "exposure": 100,
+          "assetImpact": 0,
+          "priorityScore": 70
+        },
+        "severity": "HIGH",
+        "description": "Function uses tx.origin for authentication check, making it vulnerable to phishing attacks via malicious contracts.",
+        "evidence": [
+          "require(tx.origin == owner)"
+        ],
+        "confidence": "HIGH",
+        "patchDiff": "--- a/contracts/Vault.sol\n+++ b/contracts/Vault.sol\n@@ -10,1 +10,1 @@\n-        require(tx.origin == owner);\n+        require(msg.sender == owner);",
+        "liveContext": {
+          "status": "unavailable",
+          "note": "Ngữ cảnh on-chain không khả dụng do lỗi RPC"
+        }
+      }
+    ]
+  },
+  "attestation": {
+    "status": "NOT_ATTESTABLE",
+    "disabledReason": "Ngữ cảnh on-chain không khả dụng do lỗi RPC và Registry chưa được cấu hình"
+  }
+}

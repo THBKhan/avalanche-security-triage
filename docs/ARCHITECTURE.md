@@ -68,7 +68,7 @@ Each parameter is normalized on a scale from $0$ to $100$:
   - Vulnerability Report IPFS/Arweave Hash
   - Computed Priority Score
   - Auditor / AI Agent Signature
-- **`VulnerableVault.sol`**: Demo target contract holding real Fuji testnet AVAX to demonstrate live TVL risk valuation and exploit triage.
+- Demo sử dụng mã mẫu an toàn hoặc địa chỉ đọc được trên Fuji. Fixtures có lỗi nằm trong môi trường local.
 
 ### 3.2. Backend Engine (`/backend`)
 - **AST / Static Parser**: Extracts functions, modifiers, parameters, and external calls.
