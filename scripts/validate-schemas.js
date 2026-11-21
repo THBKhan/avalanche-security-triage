@@ -27,6 +27,14 @@ function assert(condition, message) {
   }
 }
 
+function scoresMatchPolicy(payload) {
+  return (payload.report?.findings ?? []).every(({ scores, severity }) => {
+    const expected = Math.round((4 * scores.exploitability + 3 * scores.exposure + 3 * scores.assetImpact) / 10);
+    const expectedSeverity = expected >= 80 ? "CRITICAL" : expected >= 60 ? "HIGH" : expected >= 40 ? "MEDIUM" : "LOW";
+    return scores.priorityScore === expected && severity === expectedSeverity;
+  });
+}
+
 console.log("=== BẮT ĐẦU KIỂM TRA SCHEMA & FIXTURES ===");
 
 // 1. Compile Schemas
@@ -69,12 +77,23 @@ for (const file of fixtureFiles) {
     const valid = validateResponse(data);
     if (valid) {
       assert(true, `Fixture hợp lệ: ${file}`);
+      assert(scoresMatchPolicy(data), `Điểm và severity của fixture khớp chính sách: ${file}`);
     } else {
       assert(false, `Fixture vi phạm schema: ${file}\n${JSON.stringify(validateResponse.errors, null, 2)}`);
     }
   } catch (err) {
     assert(false, `Lỗi đọc fixture ${file}: ${err.message}`);
   }
+}
+
+try {
+  const mock = JSON.parse(fs.readFileSync(path.join(__dirname, "../docs/mock-data.json"), "utf8"));
+  assert(validateResponse(mock), `docs/mock-data.json hợp lệ theo response schema: ${JSON.stringify(validateResponse.errors)}`);
+  assert(mock.report?.findings?.every((finding) => finding.scores.assetImpact === 0),
+    "Mock không gán Asset Impact từ số dư chưa xác minh");
+  assert(scoresMatchPolicy(mock), "Điểm và severity của mock khớp chính sách");
+} catch (err) {
+  assert(false, `Lỗi kiểm tra docs/mock-data.json: ${err.message}`);
 }
 
 // 3. Validate Positive Request & Response Cases
@@ -108,7 +127,7 @@ const validSourceOnlyResponse = {
       highCount: 1,
       mediumCount: 0,
       lowCount: 0,
-      priorityScore: 70,
+      priorityScore: 60,
     },
     findings: [
       {
@@ -122,7 +141,7 @@ const validSourceOnlyResponse = {
           exploitability: 75,
           exposure: 100,
           assetImpact: 0,
-          priorityScore: 70,
+          priorityScore: 60,
         },
         severity: "HIGH",
         description: "Uses tx.origin",

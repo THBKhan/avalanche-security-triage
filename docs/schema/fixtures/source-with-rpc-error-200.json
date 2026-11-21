@@ -14,7 +14,7 @@
       "highCount": 1,
       "mediumCount": 0,
       "lowCount": 0,
-      "priorityScore": 70
+      "priorityScore": 60
     },
     "findings": [
       {
@@ -28,7 +28,7 @@
           "exploitability": 75,
           "exposure": 100,
           "assetImpact": 0,
-          "priorityScore": 70
+          "priorityScore": 60
         },
         "severity": "HIGH",
         "description": "Function uses tx.origin for authentication check, making it vulnerable to phishing attacks via malicious contracts.",

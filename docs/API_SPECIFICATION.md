@@ -153,13 +153,9 @@ Thống nhất sử dụng tên trường `targetContract` xuyên suốt giữa 
 
 ---
 
-## 5. Danh Mục Quyết Định Nghiệp Vụ Cần Xác Nhận (Alex & Hiedan)
+## 5. Quy tắc điểm và trạng thái dữ liệu hiện tại
 
-1. **Quy tắc làm tròn số nguyên cho `priorityScore`:**
-   - Contract nhận `uint256 priorityScore`.
-   - Cần Alex xác nhận: Sử dụng `Math.round(raw)` (làm tròn số nguyên gần nhất half-up) hay `Math.floor(raw)`.
-2. **Quy tắc tổng hợp điểm cấp Report khi có nhiều findings:**
-   - Trong [mock-data.json](mock-data.json), `compositeRiskScore` là `84.5` trong khi findings có điểm là 95.0, 97.0, 11.5. Chưa có quy tắc nào giải thích số 84.5.
-   - Cần xác nhận: Report-level score là giá trị lớn nhất (max finding), trung bình có trọng số, hay công thức nào khác? Không tự ý giả định.
-3. **Địa chỉ triển khai Registry chính thức trên Fuji:**
-   - Cần cập nhật vào [DEPLOYED_ADDRESSES.md](../contracts/DEPLOYED_ADDRESSES.md) khi deploy hoàn tất.
+- Backend tính `Math.round((4E + 3X + 3A) / 10)` cho mỗi finding; `Math.round` làm tròn half-up với các điểm không âm. `summary.priorityScore` lấy giá trị lớn nhất trong findings có `review.verdict = "potential-issue"`, hoặc 0 nếu không có; `scoredFindingCount` cho biết số finding đóng góp. Điểm 0 khi không có finding đủ điều kiện không phải kết luận an toàn.
+- Asset Impact hiện dùng 0 vì tài sản chịu rủi ro chưa được xác minh, kể cả khi RPC đọc được native balance. Xem [mô hình đề xuất](data/ASSET_IMPACT_MODEL.md); mô hình phi tuyến trong tài liệu đó chưa được runtime sử dụng.
+- [mock-data.json](mock-data.json) là payload minh họa hợp schema, không phải báo cáo live hay hash có thể attest. Nguồn, trạng thái thiếu dữ liệu và thời gian truy vấn nằm ở `targetContract`; giải thích giới hạn ở `report.limitations` và `finding.liveContext.note` với response runtime.
+- Registry Fuji đã được ghi tại [DEPLOYED_ADDRESSES.md](../contracts/DEPLOYED_ADDRESSES.md). Địa chỉ registry không khiến một báo cáo tự động đủ điều kiện ghi nhận; còn cần report, target, ví, chain và xác nhận người dùng.

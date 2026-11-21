@@ -47,3 +47,10 @@ Open http://localhost:3001 and choose **Thử dữ liệu mẫu**. Click **Phân
 - Gemini review is optional and requires explicit opt-in for each request. Configure `LLM_PROVIDER`, `LLM_MODEL` and `LLM_API_KEY` in the backend environment to enable it.
 - The demo scoring policy rounds each candidate to the nearest integer, with halves rounded up, and takes the highest score among findings reviewed as `potential-issue`. The report score is 0 and attestation is disabled when none qualify.
 - See [API examples](./docs/api-examples.md), [deployment and demo instructions](./docs/DEMO.md), and the [implementation plan](./docs/SE_WEB_RPC_IMPLEMENTATION_PLAN.md).
+
+## Data and presentation modules
+
+- [Current architecture and trust boundaries](./docs/ARCHITECTURE.md)
+- [Mock payload, provenance and proposed Asset Impact model](./docs/data/README.md)
+- [Demo recording script](./docs/demo/SCRIPT.md)
+- [Pitch deck](./docs/pitch/README.md)
