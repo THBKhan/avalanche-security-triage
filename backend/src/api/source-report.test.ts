@@ -137,6 +137,33 @@ test("reports without any potential issue remain non-attestable even with regist
   assert.equal(payload.report.findings[0].scores.priorityScore, 7);
 });
 
+test("the Fuji smoke report stores a labeled zero-score snapshot for the registry only", async () => {
+  const writes: ReturnType<typeof hashReport>[] = [];
+  const analyze = createSourceReportService(
+    { fetchContext: async (requested) => ({ ...target, address: requested }) },
+    { save: async (snapshot) => { writes.push(snapshot); } },
+    validate, registry,
+  );
+  const request = { sourceCode: "pragma solidity 0.8.20; contract Demo {}", contractAddress: registry };
+  const ordinary = await analyze(request);
+  assert.equal((ordinary.body as any).attestation.status, "NOT_ATTESTABLE");
+  assert.equal((ordinary.body as any).fujiSmoke, undefined);
+
+  const smoke = await analyze(request, "fuji-smoke");
+  assert.equal(smoke.status, 200);
+  const payload = smoke.body as any;
+  assert.equal(payload.attestation.status, "NOT_ATTESTABLE");
+  assert.deepEqual(payload.fujiSmoke, { registryAddress: registry, ipfsUri: "" });
+  assert.equal(payload.report.summary.priorityScore, 0);
+  assert.ok(payload.report.limitations.some((note: string) => note.startsWith("Fuji smoke test")));
+  assert.deepEqual(writes.at(-1), hashReport(payload.report));
+  assert.equal(writes.at(-1)?.reportHash, payload.attestation.reportHash);
+
+  const wrongTarget = await analyze({ ...request, contractAddress: address }, "fuji-smoke");
+  assert.equal(wrongTarget.status, 502);
+  assert.equal(writes.length, 2);
+});
+
 test("a failed snapshot write never returns an attestable report", async () => {
   const analyze = createSourceReportService(
     { fetchContext: async () => target },

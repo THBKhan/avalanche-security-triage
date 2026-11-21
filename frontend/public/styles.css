@@ -48,6 +48,7 @@ button, .button-link { border: 1px solid transparent; border-radius: .42rem; pad
 .secondary { background: #232735; color: var(--text); border-color: var(--line); }
 .secondary:hover:not(:disabled) { background: #313648; }
 #submit { width: 100%; }
+#fuji-smoke { width: 100%; margin-top: .6rem; }
 .section-head { display: flex; align-items: center; justify-content: space-between; gap: .6rem; flex-wrap: wrap; }
 .notice { color: var(--muted); padding: 1.55rem 0; }
 .notice.error { color: #ffafb5; }

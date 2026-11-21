@@ -11,6 +11,7 @@ import { AppConfig } from "./config";
 import { OnChainContextReader } from "./rpc/context";
 import { createRequestValidator, createResponseValidator } from "./api/schema";
 import { createAnalyzeHandler } from "./api/analyze";
+import { createFujiSmokeHandler } from "./api/fuji-smoke";
 import { createSourceReportService } from "./api/source-report";
 import { createSnapshotStore, type SnapshotStore } from "./analysis/snapshot";
 import { CandidateTriageService, createLlmAdapterFromConfig, type LlmAdapter } from "./analysis";
@@ -39,6 +40,7 @@ export function createApp(config: AppConfig, deps: AppDependencies = {}): Expres
     config.registryAddress,
     adapter ? new CandidateTriageService({ adapter }) : undefined,
   );
+  const fujiSmoke = createFujiSmokeHandler(config, sourceReport);
 
   // Strict CORS: Only allow configured origins, never reflect arbitrary origins
   const allowedOrigins = Array.isArray(config.corsOrigin) ? config.corsOrigin : [config.corsOrigin];
@@ -71,35 +73,32 @@ export function createApp(config: AppConfig, deps: AppDependencies = {}): Expres
   });
 
   app.get("/api/config", (_req, res) => {
-    res.json({ geminiAvailable: Boolean(adapter) });
+    res.json({ geminiAvailable: Boolean(adapter), ...(fujiSmoke ? { fujiSmokeAvailable: true } : {}) });
   });
 
   // Bound the entire process, including when deployed behind a shared proxy.
   let active = 0;
   let remaining = 60;
   let resetAt = Date.now() + 60_000;
-  const analyze = createAnalyzeHandler(reader, validateRequest, sourceReport);
-  app.post("/api/analyze", (_req, res, next) => {
-    const now = Date.now();
-    if (now >= resetAt) {
-      remaining = 60;
-      resetAt = now + 60_000;
-    }
-    if (remaining === 0 || active >= 4) {
-      res.set("Retry-After", remaining === 0 ? String(Math.max(1, Math.ceil((resetAt - now) / 1000))) : "2");
-      res.status(429).json({ error: { code: "RATE_LIMITED", message: "The demo is busy. Try again shortly." } });
-      return;
-    }
-    remaining--;
-    active++;
-    let released = false;
-    const done = () => {
-      if (!released) active--;
-      released = true;
+  const withAnalysisLimits = (handler: (req: Request, res: Response, next: NextFunction) => Promise<void>) =>
+    (req: Request, res: Response, next: NextFunction) => {
+      const now = Date.now();
+      if (now >= resetAt) {
+        remaining = 60;
+        resetAt = now + 60_000;
+      }
+      if (remaining === 0 || active >= 4) {
+        res.set("Retry-After", remaining === 0 ? String(Math.max(1, Math.ceil((resetAt - now) / 1000))) : "2");
+        res.status(429).json({ error: { code: "RATE_LIMITED", message: "The demo is busy. Try again shortly." } });
+        return;
+      }
+      remaining--;
+      active++;
+      // Release when the handler finishes, including if the client disconnects early.
+      void handler(req, res, next).finally(() => { active--; }).catch(next);
     };
-    // Release when the handler finishes, including if the client disconnects early.
-    void analyze(_req, res, next).finally(done).catch(next);
-  });
+  app.post("/api/analyze", withAnalysisLimits(createAnalyzeHandler(reader, validateRequest, sourceReport)));
+  if (fujiSmoke) app.post("/api/fuji-smoke", withAnalysisLimits(fujiSmoke));
 
   app.use(express.static(path.resolve(__dirname, "../../frontend/public"), {
     setHeaders(res, filename) {

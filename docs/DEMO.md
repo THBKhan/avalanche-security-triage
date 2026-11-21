@@ -21,12 +21,19 @@ Mở http://localhost:3001. Chọn **Thử dữ liệu mẫu**, mở finding và
 | `FUJI_RPC_URL` | URL RPC đọc Avalanche Fuji, có mặc định trong ứng dụng. |
 | `LLM_PROVIDER=gemini`, `LLM_MODEL`, `LLM_API_KEY` | Bật lựa chọn gửi mã nguồn cho Gemini trên form. Có thể để trống để chỉ dùng phân tích tĩnh. Chỉ bật trên môi trường có giới hạn truy cập phù hợp với quota dữ liệu và chi phí. |
 | `REGISTRY_ADDRESS` | Địa chỉ `AvaTriageRegistry` đã xác minh trên Fuji. Khi trống, báo cáo vẫn có hash và nút ghi nhận bị khóa. |
+| `ENABLE_FUJI_SMOKE_TEST=true` | Hiện nút chuẩn bị smoke test cho registry Fuji của dự án. Mặc định tắt. |
 | `REPORT_SNAPSHOT_DIR` | Thư mục riêng để lưu snapshot có evidence. Mặc định `backend/.report-snapshots`; cấu hình ổ đĩa bền khi deploy. |
 | `CORS_ORIGIN` | Origin được phép gọi API. Đặt origin HTTPS đầy đủ của demo khi host chấm dứt TLS tại reverse proxy. |
 
 Chạy `npm run smoke:gemini -- --live` từ `backend/` khi ba biến Gemini đã được cấu hình. Script gửi đúng một mẫu Solidity cố định và chỉ in kết quả rút gọn.
 
 Để kiểm thử ghi nhận thật, dùng một registry đã xác minh và một hợp đồng demo an toàn mà nhóm có quyền rà soát. Nhập mã nguồn và địa chỉ tương ứng, dùng review Gemini và kiểm tra có finding `potential-issue`, đối chiếu báo cáo, score và hash, xác nhận trong ví Fuji rồi xem giao dịch. Chỉ khi receipt thành công có event khớp, dashboard mới hiển thị đã ghi nhận. Xem [địa chỉ triển khai](../contracts/DEPLOYED_ADDRESSES.md).
+
+### Smoke test ví với registry Fuji
+
+Bật `ENABLE_FUJI_SMOKE_TEST=true` và đặt `REGISTRY_ADDRESS` thành địa chỉ registry Fuji trong tài liệu triển khai. Bấm **Chuẩn bị smoke test Fuji**. Backend đối chiếu mã nguồn, chain ID và bytecode của registry, rồi lưu báo cáo tĩnh điểm 0 có ghi mục đích kiểm thử trong snapshot. Bấm **Ghi smoke test trên Fuji**, đối chiếu hash và xác nhận trong ví. Nút **Ghi nhận trên Fuji** của báo cáo thông thường vẫn yêu cầu finding `potential-issue`.
+
+Đã chạy qua Edge và MetaMask trên Fuji. Dashboard xác nhận receipt và event khớp snapshot cho attestation ID `1`, điểm `0`, block `61431221`. [Xem giao dịch smoke từ dashboard](https://testnet.snowtrace.io/tx/0x9a6b13c4fdbdcd50dd8423573ef158e01cf8d544c8f8b498ddbb34a08ea80473).
 
 ## Đóng gói
 

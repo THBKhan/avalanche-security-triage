@@ -1,13 +1,12 @@
-# Kịch bản demo 2 phút 30 giây
+# Kịch bản demo 54 giây
 
-Đây là kịch bản quay, chưa phải video đã ghi. Dùng địa chỉ/nguồn do nhóm có quyền đánh giá. Fixture có lỗi chỉ chạy trên local Hardhat, không triển khai lên Fuji.
+[Video demo 0:54](avalanche-security-triage-demo.mp4) ghi màn hình dashboard và Snowtrace trong Microsoft Edge, có phụ đề ngắn. Khung MetaMask được đóng trong lần quay này.
 
-| Thời gian | Màn hình và lời dẫn |
+| Thời gian | Thao tác trên màn hình |
 |---|---|
-| 00:00–00:30 | Nêu vấn đề: scanner tạo nhiều cảnh báo, nhóm phải chọn cái nào cần xem trước. Giới thiệu dashboard và giới hạn demo. |
-| 00:30–01:00 | Bấm **Thử dữ liệu mẫu**, chỉ rõ đây là mock. Sau đó bấm **Phân tích** để chạy API với source mẫu, phân biệt kết quả thật và mock. |
-| 01:00–01:30 | Mở finding, xem evidence, điểm E/X/A và `limitations`. Nhấn mạnh AVAX balance chỉ là ngữ cảnh; Asset Impact đang là 0 do chưa xác minh tài sản chịu rủi ro. Nếu có địa chỉ được phép, cho xem truy vấn Fuji chỉ đọc. |
-| 01:30–02:00 | Mở diff **AI đề xuất** và nhận xét human review. Nếu báo cáo không có `potential-issue`, chỉ ra score report 0 và vì sao nút attestation khóa. |
-| 02:00–02:30 | Nếu có report đủ điều kiện và ví testnet: người dùng xem hash, score, địa chỉ rồi chủ động xác nhận; mở receipt/event trên explorer. Nếu chưa có report phù hợp, mở giao dịch smoke đã ghi trong `contracts/DEPLOYED_ADDRESSES.md` và nói rõ đó là smoke test gọi registry trực tiếp, không phải giao dịch vừa thực hiện trên dashboard. |
+| 00:00–00:14 | Bấm **Thử dữ liệu mẫu**, rồi bấm **Phân tích** để chạy API tĩnh trên source mẫu. |
+| 00:14–00:33 | Dán mã `DemoGuard` vào ô mã Solidity, giữ ô địa chỉ trống và bật Gemini review. Mở finding có verdict `potential-issue`, điểm 60. Nút ghi nhận khóa vì source chưa gắn với contract đã deploy trên Fuji. |
+| 00:33–00:42 | Xóa source và tra cứu riêng registry. Dashboard hiển thị số dư AVAX và bytecode 3030 B đọc qua RPC Fuji. |
+| 00:42–00:54 | Dashboard báo **Registry đã ghi nhận smoke test** cho giao dịch đã ký qua MetaMask. Bấm **Xem giao dịch**, xem **Success** trên Snowtrace rồi mở **Logs** để đối chiếu hash của attestation ID `1`. |
 
-Trước khi quay: chạy `npm run validate:schema`, backend build/test, thử flow source/address/RPC lỗi và màn hình mobile; kiểm tra URL, ví Fuji, test AVAX và registry address. Ghi chính xác bản nào là local, mock, RPC live và attestation thật.
+Trước khi quay, kiểm tra backend, dashboard, cấu hình Gemini và registry. Mở sẵn [giao dịch smoke đã ký từ dashboard](https://testnet.snowtrace.io/tx/0x9a6b13c4fdbdcd50dd8423573ef158e01cf8d544c8f8b498ddbb34a08ea80473). Với cảnh ký ví, chạy thử toàn bộ luồng bằng báo cáo smoke của registry hoặc báo cáo đủ điều kiện ghi nhận.

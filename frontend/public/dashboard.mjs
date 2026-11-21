@@ -1,4 +1,4 @@
-import { checkAttestationReceipt, prepareAttestation, submitAttestation } from "./wallet.mjs";
+import { checkAttestationReceipt, prepareAttestation, prepareFujiSmokeAttestation, submitAttestation } from "./wallet.mjs";
 
 const $ = (id) => document.getElementById(id);
 const element = (tag, text = "", cls = "") => {
@@ -109,12 +109,13 @@ function render(payload, label) {
   $("wallet-status").replaceChildren();
   $("severity").value = "ALL";
   const { report, attestation } = payload;
+  const smokeIntent = prepareFujiSmokeAttestation(payload);
   const context = report?.targetContract ?? payload.targetContract;
   const contextAvailable = context?.status === "available";
   const metrics = [];
   if (report) {
     const count = report.summary.scoredFindingCount ?? report.findings.length;
-    metrics.push(metric("Điểm ưu tiên", count ? report.summary.priorityScore : "—"), metric("Phát hiện", report.findings.length));
+    metrics.push(metric("Điểm ưu tiên", count || smokeIntent ? report.summary.priorityScore : "—"), metric("Phát hiện", report.findings.length));
   }
   if (contextAvailable) metrics.push(metric("Số dư AVAX", context.balanceAvax), metric("Bytecode", context.bytecodeSize + " B"));
   $("metrics").replaceChildren(...metrics);
@@ -139,7 +140,11 @@ function render(payload, label) {
   $("limit-list").replaceChildren(...limits.map((note) => element("li", note)));
   const intent = prepareAttestation(payload);
   $("attest").disabled = !intent || !window.ethereum?.request;
-  $("attest-note").textContent = intent
+  $("attest-smoke").hidden = !smokeIntent;
+  $("attest-smoke").disabled = !smokeIntent || !window.ethereum?.request;
+  $("attest-note").textContent = smokeIntent
+    ? window.ethereum?.request ? "Smoke test Fuji ghi báo cáo kiểm thử của registry với điểm 0." : "Mở dashboard trong trình duyệt có ví để ghi smoke test."
+    : intent
     ? window.ethereum?.request ? "Ví sẽ hỏi xác nhận giao dịch trước khi gửi." : "Cần ví trình duyệt để ghi nhận."
     : (attestation?.disabledReason ?? "Báo cáo chưa đủ điều kiện ghi nhận.");
   $("hash").hidden = !attestation?.reportHash;
@@ -149,6 +154,7 @@ function render(payload, label) {
 function busy(isBusy) {
   $("submit").disabled = isBusy || signing;
   $("sample").disabled = isBusy || signing;
+  $("fuji-smoke").disabled = isBusy || signing;
   $("submit").textContent = isBusy ? "Đang phân tích…" : "Phân tích";
 }
 
@@ -166,6 +172,13 @@ $("analyze").addEventListener("submit", async (event) => {
     ...(source.trim() ? { sourceCode: source } : {}),
     ...($("gemini").checked && source.trim() ? { reviewWithGemini: true } : {}),
   };
+  await analyze("/api/analyze", payload);
+});
+
+$("fuji-smoke").addEventListener("click", () => analyze("/api/fuji-smoke", {}, "Smoke test Fuji"));
+
+async function analyze(url, payload, label) {
+  if (request || signing) return;
   request = new AbortController();
   const timer = setTimeout(() => request?.abort(), 38_000);
   busy(true);
@@ -174,7 +187,7 @@ $("analyze").addEventListener("submit", async (event) => {
   $("mode").hidden = true;
   notify("Đang đọc dữ liệu và tạo báo cáo…");
   try {
-    const response = await fetch("/api/analyze", {
+    const response = await fetch(url, {
       method: "POST", body: JSON.stringify(payload), signal: request.signal,
       headers: { "Content-Type": "application/json" },
     });
@@ -183,7 +196,7 @@ $("analyze").addEventListener("submit", async (event) => {
       const suffix = Number.isInteger(body.error?.details?.line) ? ` (dòng ${body.error.details.line})` : "";
       return notify((body.error?.message ?? "Không thể phân tích yêu cầu.") + suffix, true);
     }
-    render(body, body.mode === "context-only" ? "Ngữ cảnh Fuji" : body.report.reviewMode === "gemini" ? "Gemini review" : "Phân tích tĩnh");
+    render(body, label ?? (body.mode === "context-only" ? "Ngữ cảnh Fuji" : body.report.reviewMode === "gemini" ? "Gemini review" : "Phân tích tĩnh"));
   } catch (error) {
     notify(error.name === "AbortError" ? "Hết thời gian chờ phân tích." : "Không kết nối được với backend.", true);
   } finally {
@@ -191,7 +204,7 @@ $("analyze").addEventListener("submit", async (event) => {
     request = null;
     busy(false);
   }
-});
+}
 
 $("sample").addEventListener("click", () => {
   if (request || signing) return;
@@ -201,17 +214,22 @@ $("sample").addEventListener("click", () => {
   render(demo, "Dữ liệu mẫu");
 });
 $("severity").addEventListener("change", renderFindings);
-$("attest").addEventListener("click", () => {
+function openAttestationDialog(intent, smokeTest = false) {
   if (signing || request) return;
-  const intent = prepareAttestation(result);
   if (!intent) return;
-  intentToSign = { result, intent };
+  intentToSign = { result, intent, smokeTest };
+  $("confirm-title").textContent = smokeTest ? "Xác nhận smoke test Fuji" : "Kiểm tra trước khi ký";
+  $("confirm-note").textContent = smokeTest
+    ? "Đây là giao dịch kiểm thử ví và registry trên Fuji. Giao dịch ghi báo cáo điểm 0 và chuyển 0 AVAX."
+    : "Registry sẽ lưu địa chỉ mục tiêu, điểm và hash của báo cáo hiện tại.";
   const values = [["Địa chỉ mục tiêu", intent.target], ["Registry", intent.registry], ["Điểm ưu tiên", intent.score], ["Report hash", intent.hash]];
   $("tx-summary").replaceChildren(...values.flatMap(([label, value]) => [element("dt", label), element("dd", String(value))]));
   $("ack").checked = false;
   $("confirm").returnValue = "";
   $("confirm").showModal();
-});
+}
+$("attest").addEventListener("click", () => openAttestationDialog(prepareAttestation(result)));
+$("attest-smoke").addEventListener("click", () => openAttestationDialog(prepareFujiSmokeAttestation(result), true));
 $("cancel-attest").addEventListener("click", () => $("confirm").close());
 $("confirm").addEventListener("close", async () => {
   const pending = intentToSign;
@@ -221,6 +239,7 @@ $("confirm").addEventListener("close", async () => {
   let confirmed = false;
   busy(false);
   $("attest").disabled = true;
+  $("attest-smoke").disabled = true;
   $("wallet-status").textContent = "Đang chờ xác nhận trong ví…";
   try {
     const provider = window.ethereum;
@@ -235,7 +254,7 @@ $("confirm").addEventListener("close", async () => {
       const receipt = await checkAttestationReceipt(provider, pending.intent, submission).catch(() => "pending");
       if (receipt === "confirmed") {
         confirmed = true;
-        status.textContent = "Registry đã ghi nhận báo cáo. ";
+        status.textContent = pending.smokeTest ? "Registry đã ghi nhận smoke test. " : "Registry đã ghi nhận báo cáo. ";
         return;
       }
       if (receipt === "failed") { status.textContent = "Giao dịch không ghi nhận attestation như mong đợi. "; return; }
@@ -250,9 +269,11 @@ $("confirm").addEventListener("close", async () => {
     signing = false;
     busy(false);
     $("attest").disabled = confirmed || !prepareAttestation(result);
+    $("attest-smoke").disabled = confirmed || !prepareFujiSmokeAttestation(result);
   }
 });
 
 fetch("/api/config").then((response) => response.json()).then((config) => {
   $("gemini-option").hidden = config.geminiAvailable !== true;
+  $("fuji-smoke").hidden = config.fujiSmokeAvailable !== true;
 }).catch(() => {});

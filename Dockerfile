@@ -16,6 +16,7 @@ RUN mkdir /data && chown node:node /data
 COPY --from=build /app/backend/node_modules ./node_modules
 COPY --from=build /app/backend/dist ./dist
 COPY frontend/public /app/frontend/public
+COPY contracts/contracts/AvaTriageRegistry.sol /app/contracts/contracts/AvaTriageRegistry.sol
 USER node
 EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=3s CMD ["node", "-e", "fetch('http://127.0.0.1:'+process.env.PORT+'/health').then(r=>{if(!r.ok)process.exitCode=1}).catch(()=>{process.exitCode=1})"]

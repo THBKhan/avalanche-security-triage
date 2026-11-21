@@ -60,30 +60,35 @@ slide("Vấn đề: quá nhiều cảnh báo để xử lý", [
 ])
 slide("Giải pháp đang chạy", [
     "Solidity parser tạo candidates cho floating pragma và tx.origin.",
-    "Gemini có thể review candidates khi người dùng chủ động chọn và server được cấu hình.",
-    "Dashboard trình bày findings, diff đề xuất và các giới hạn để con người rà soát.",
+    "Gemini 3.5 Flash-Lite review candidates khi người dùng bật tùy chọn.",
+    "Dashboard hiển thị evidence, giới hạn phân tích và đề xuất khắc phục khi có.",
 ])
 slide("Ba trụ cột điểm rủi ro", [
-    "Priority = round(0.4 × Exploitability + 0.3 × Exposure + 0.3 × Asset Impact)",
-    "Asset Impact hiện bằng 0 vì chưa xác minh tài sản chịu rủi ro. Native AVAX balance chỉ là ngữ cảnh.",
-    "Điểm report lấy max của findings được review là potential-issue; nếu không có, bằng 0.",
+    "Điểm finding = round(0.4 × Exploitability + 0.3 × Exposure + 0.3 × Asset Impact)",
+    "Finding floating pragma được 7 điểm từ 10/10/0. Asset Impact là 0 khi chưa xác minh tài sản chịu rủi ro.",
+    "Điểm báo cáo lấy mức cao nhất trong các finding potential-issue. Khi nhóm này rỗng, điểm là 0 và dashboard hiển thị —.",
 ])
 slide("Kiến trúc và ranh giới tin cậy", [
     "Dashboard → Express API → static candidates → Gemini review tùy chọn → report snapshot.",
     "Fuji RPC chỉ đọc balance, bytecode và owner/paused nếu contract hỗ trợ.",
     "Backend tính điểm và hash. Người dùng xác nhận giao dịch qua ví, không có private key trên server.",
 ])
-demo = slide("Demo dashboard: báo cáo cần rà soát", [])
-demo.shapes.add_picture(str(ROOT / "assets" / "dashboard-report-mock.png"),
-                        Inches(1.13), Inches(1.65), width=Inches(11.1))
+demo = slide("Báo cáo phân tích tĩnh từ API local", [])
+demo.shapes.add_picture(str(ROOT / "assets" / "dashboard-report-api.png"),
+                        Inches(2.30), Inches(1.65), height=Inches(4.5))
 textbox(demo, 1.13, 6.35, 11.1, 0.5,
-        "Ảnh chụp dashboard local với dữ liệu mẫu; điểm report chưa đủ điều kiện ghi nhận trên Fuji.",
+        "Kết quả API với source mẫu. Finding có điểm 7 và báo cáo đang ở trạng thái chưa đủ điều kiện ghi nhận.",
         16, PALE)
-slide("Ghi nhận trên Avalanche Fuji", [
-    "Registry AvaTriageRegistry đã deploy trên Fuji. Báo cáo đủ điều kiện mang reportHash và score nguyên.",
-    "Ví yêu cầu người dùng xác nhận. Dashboard chỉ báo thành công khi receipt/event khớp snapshot.",
-    "Smoke transaction trong repo gọi registry trực tiếp; không đại diện cho luồng dashboard đã quay.",
+proof = slide("Ghi nhận trên Avalanche Fuji", [
+    "Smoke test gọi trực tiếp AvaTriageRegistry và ghi attestation ID 0 tại block 61344940.",
+    "Receipt và event AttestationRecorded khớp hash báo cáo đã lưu, score 0 và ipfsUri rỗng.",
+    "Dashboard cần finding potential-issue và xác nhận ví để ghi nhận báo cáo đủ điều kiện.",
 ])
+proof_link = textbox(proof, 0.9, 6.40, 11.5, 0.45, "Xem giao dịch smoke trên Fuji", 17, WHITE, True)
+proof_link.text_frame.paragraphs[0].runs[0].font.underline = True
+proof_link.click_action.hyperlink.address = (
+    "https://testnet.snowtrace.io/tx/0xc6e222e40e7c3fa43adfa5583bda1fe9c583c99323234c78a5ab2a3c731cccc4"
+)
 slide("Giới hạn và bước tiếp", [
     "Hiện mới có hai static checks; source chưa được chứng minh khớp bytecode triển khai.",
     "Mô hình Asset Impact phi tuyến đã được đặc tả, chờ bằng chứng về tài sản chịu rủi ro để tích hợp.",

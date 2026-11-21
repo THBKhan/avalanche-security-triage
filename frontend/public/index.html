@@ -29,6 +29,7 @@
           <label class="check" id="gemini-option" hidden><input id="gemini" type="checkbox">Gửi mã cho Gemini để hỗ trợ review</label>
           <p class="muted hint">Cung cấp mã, địa chỉ hoặc cả hai. Chỉ nhập địa chỉ sẽ trả ngữ cảnh on-chain.</p>
           <button id="submit" class="primary" type="submit">Phân tích</button>
+          <button id="fuji-smoke" class="secondary" type="button" hidden>Chuẩn bị smoke test Fuji</button>
         </form>
       </section>
       <section class="panel results" aria-labelledby="result-title">
@@ -52,6 +53,7 @@
           <div class="section-head actions">
             <a id="download" class="secondary button-link" download="avalanche-triage.json">Tải báo cáo JSON</a>
             <button id="attest" type="button" class="primary" disabled>Ghi nhận trên Fuji</button>
+            <button id="attest-smoke" type="button" class="primary" hidden disabled>Ghi smoke test trên Fuji</button>
           </div>
           <p id="attest-note" class="muted"></p>
           <p id="hash" class="hash" hidden></p>
@@ -63,7 +65,7 @@
   <dialog id="confirm" aria-labelledby="confirm-title">
     <form method="dialog">
       <h2 id="confirm-title">Kiểm tra trước khi ký</h2>
-      <p>Registry sẽ lưu địa chỉ mục tiêu, điểm và hash của báo cáo hiện tại.</p>
+      <p id="confirm-note">Registry sẽ lưu địa chỉ mục tiêu, điểm và hash của báo cáo hiện tại.</p>
       <dl id="tx-summary"></dl>
       <label class="check"><input id="ack" type="checkbox" required>Tôi đã kiểm tra mã nguồn tương ứng với địa chỉ mục tiêu.</label>
       <div class="section-head actions">

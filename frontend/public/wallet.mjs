@@ -8,7 +8,22 @@ const addressWord = (address) => address.toLowerCase().slice(2).padStart(64, "0"
 export function prepareAttestation(result) {
   const { report, attestation } = result ?? {};
   if (attestation?.status !== "READY_TO_ATTEST" || !report || report.summary?.scoredFindingCount === 0) return null;
-  const { registryAddress: registry, reportHash: hash, ipfsUri } = attestation;
+  return encodeIntent(report, attestation.reportHash, attestation.registryAddress, attestation.ipfsUri);
+}
+
+export function prepareFujiSmokeAttestation(result) {
+  const { report, attestation, fujiSmoke } = result ?? {};
+  const target = report?.targetContract;
+  const registry = fujiSmoke?.registryAddress;
+  if (attestation?.status !== "NOT_ATTESTABLE" || report?.reviewMode !== "static"
+      || report.summary?.priorityScore !== 0 || report.summary.scoredFindingCount !== 0
+      || target?.status !== "available" || target.chainId !== 43113 || target.isContract !== true
+      || typeof registry !== "string" || typeof target.address !== "string"
+      || target.address.toLowerCase() !== registry.toLowerCase()) return null;
+  return encodeIntent(report, attestation.reportHash, registry, fujiSmoke.ipfsUri);
+}
+
+function encodeIntent(report, hash, registry, ipfsUri) {
   const target = report.targetContract?.address;
   const score = report.summary?.priorityScore;
   if (!ADDRESS.test(registry) || !ADDRESS.test(target) || !HASH.test(hash)

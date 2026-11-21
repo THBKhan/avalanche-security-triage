@@ -19,6 +19,7 @@ export interface AppConfig {
   llmModel?: string;
   llmApiKey?: string;
   registryAddress?: `0x${string}`;
+  enableFujiSmokeTest?: boolean;
   snapshotDirectory?: string;
 }
 
@@ -121,6 +122,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     llmModel,
     llmApiKey,
     ...(registry ? { registryAddress: getAddress(registry) } : {}),
+    ...(env.ENABLE_FUJI_SMOKE_TEST?.trim() === "true" ? { enableFujiSmokeTest: true } : {}),
     ...(env.REPORT_SNAPSHOT_DIR?.trim()
       ? { snapshotDirectory: path.resolve(env.REPORT_SNAPSHOT_DIR.trim()) }
       : {}),

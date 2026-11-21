@@ -12,7 +12,7 @@ interface SourceRequest {
   reviewWithGemini?: boolean;
 }
 
-export type SourceReportService = (request: SourceRequest) => Promise<{
+export type SourceReportService = (request: SourceRequest, purpose?: "fuji-smoke") => Promise<{
   status: number;
   body: unknown;
 }>;
@@ -28,7 +28,7 @@ export function createSourceReportService(
   registryAddress: AppConfig["registryAddress"],
   triage?: CandidateTriageService,
 ): SourceReportService {
-  return async ({ sourceCode, contractAddress, reviewWithGemini }) => {
+  return async ({ sourceCode, contractAddress, reviewWithGemini }, purpose) => {
     if (!isWellFormedUnicode(sourceCode)) {
       return failure(400, "INVALID_REQUEST", "Solidity source must contain valid Unicode.");
     }
@@ -86,6 +86,15 @@ export function createSourceReportService(
     }
 
     const report = buildReport(sourceCode, analysis.draft, context, review);
+    const isSmokeTest = purpose === "fuji-smoke";
+    if (isSmokeTest) {
+      if (!registryAddress || context.status !== "available" || !context.isContract
+          || context.address.toLowerCase() !== registryAddress.toLowerCase()
+          || reviewWithGemini || report.summary.priorityScore !== 0 || report.summary.scoredFindingCount !== 0) {
+        return failure(502, "FUJI_SMOKE_UNAVAILABLE", "Fuji smoke test requires a static score-zero report for the verified registry.");
+      }
+      report.limitations.push("Fuji smoke test of the registry and wallet flow using a static score-zero report.");
+    }
     const snapshot = hashReport(report);
     const disabledReason = !report.summary.scoredFindingCount
       ? "Attestation requires at least one candidate marked potential-issue."
@@ -110,6 +119,9 @@ export function createSourceReportService(
       throw new Error("Generated source report does not match the response schema");
     }
     await snapshots.save(snapshot);
-    return { status: 200, body };
+    return {
+      status: 200,
+      body: isSmokeTest ? { ...body, fujiSmoke: { registryAddress, ipfsUri: "" } } : body,
+    };
   };
 }

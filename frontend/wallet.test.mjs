@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { checkAttestationReceipt, prepareAttestation, submitAttestation } from "./public/wallet.mjs";
+import { checkAttestationReceipt, prepareAttestation, prepareFujiSmokeAttestation, submitAttestation } from "./public/wallet.mjs";
 
 const target = "0x" + "11".repeat(20);
 const registry = "0x" + "22".repeat(20);
@@ -13,6 +13,28 @@ const snapshot = {
   attestation: { status: "READY_TO_ATTEST", registryAddress: registry, reportHash, ipfsUri: "" },
 };
 const intent = prepareAttestation(snapshot);
+
+test("a score-zero Fuji smoke attestation uses the saved hash and the registry as its target", () => {
+  const smoke = {
+    report: {
+      reviewMode: "static",
+      targetContract: { address: registry, status: "available", chainId: 43113, isContract: true },
+      summary: { priorityScore: 0, scoredFindingCount: 0 },
+    },
+    attestation: { status: "NOT_ATTESTABLE", reportHash },
+    fujiSmoke: { registryAddress: registry, ipfsUri: "" },
+  };
+  assert.equal(prepareAttestation(smoke), null);
+  assert.deepEqual(prepareFujiSmokeAttestation(smoke), {
+    registry, target: registry, hash: reportHash, score: 0,
+    data: "0x4fd9d719" + word(registry.slice(2)) + reportHash.slice(2) + word("0") + word("80") + word("0"),
+  });
+  assert.equal(prepareFujiSmokeAttestation({ ...smoke, fujiSmoke: undefined }), null);
+  assert.equal(prepareFujiSmokeAttestation({ ...smoke, fujiSmoke: { ...smoke.fujiSmoke, registryAddress: target } }), null);
+  assert.equal(prepareFujiSmokeAttestation({
+    ...smoke, report: { ...smoke.report, targetContract: { ...smoke.report.targetContract, chainId: 1 } },
+  }), null);
+});
 
 test("wallet request uses the viewed hash, integer score, and fixed empty IPFS URI", async () => {
   const calls = [];
