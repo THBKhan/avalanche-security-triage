@@ -80,14 +80,14 @@ textbox(demo, 1.13, 6.35, 11.1, 0.5,
         "Kết quả API với source mẫu. Finding có điểm 7 và báo cáo đang ở trạng thái chưa đủ điều kiện ghi nhận.",
         16, PALE)
 proof = slide("Ghi nhận trên Avalanche Fuji", [
-    "Smoke test từ dashboard được ký qua MetaMask và ghi attestation ID 1 tại block 61431221.",
+    "Smoke test từ dashboard được ký qua MetaMask và ghi attestation ID 2 tại block 61432183.",
     "Báo cáo kiểm thử có điểm 0. Dashboard đối chiếu hash đã lưu với receipt và event AttestationRecorded.",
     "Với báo cáo phân tích thông thường, dashboard yêu cầu finding potential-issue trước khi mở nút ghi nhận.",
 ])
 proof_link = textbox(proof, 0.9, 6.40, 11.5, 0.45, "Xem giao dịch smoke trên Fuji", 17, WHITE, True)
 proof_link.text_frame.paragraphs[0].runs[0].font.underline = True
 proof_link.click_action.hyperlink.address = (
-    "https://testnet.snowtrace.io/tx/0x9a6b13c4fdbdcd50dd8423573ef158e01cf8d544c8f8b498ddbb34a08ea80473"
+    "https://testnet.snowtrace.io/tx/0x35ba960515587bf1ab1e974eac7bef5a2184f88c5a2be3529a40ee4ce6b10e23"
 )
 slide("Giới hạn và bước tiếp", [
     "Hiện mới có hai static checks; source chưa được chứng minh khớp bytecode triển khai.",

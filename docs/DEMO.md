@@ -33,7 +33,7 @@ Chạy `npm run smoke:gemini -- --live` từ `backend/` khi ba biến Gemini đ�
 
 Bật `ENABLE_FUJI_SMOKE_TEST=true` và đặt `REGISTRY_ADDRESS` thành địa chỉ registry Fuji trong tài liệu triển khai. Bấm **Chuẩn bị smoke test Fuji**. Backend đối chiếu mã nguồn, chain ID và bytecode của registry, rồi lưu báo cáo tĩnh điểm 0 có ghi mục đích kiểm thử trong snapshot. Bấm **Ghi smoke test trên Fuji**, đối chiếu hash và xác nhận trong ví. Nút **Ghi nhận trên Fuji** của báo cáo thông thường vẫn yêu cầu finding `potential-issue`.
 
-Đã chạy qua Edge và MetaMask trên Fuji. Dashboard xác nhận receipt và event khớp snapshot cho attestation ID `1`, điểm `0`, block `61431221`. [Xem giao dịch smoke từ dashboard](https://testnet.snowtrace.io/tx/0x9a6b13c4fdbdcd50dd8423573ef158e01cf8d544c8f8b498ddbb34a08ea80473).
+Video quay luồng smoke test từ dashboard qua MetaMask trên Edge. Dashboard xác nhận receipt và event khớp snapshot cho attestation ID `2`, điểm `0`, block `61432183`. [Xem giao dịch trong video](https://testnet.snowtrace.io/tx/0x35ba960515587bf1ab1e974eac7bef5a2184f88c5a2be3529a40ee4ce6b10e23).
 
 ## Đóng gói
 
