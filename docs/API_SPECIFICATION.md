@@ -46,19 +46,20 @@ Thống nhất sử dụng tên trường `targetContract` xuyên suốt giữa 
 
 ### 3.1. Chế độ Source Analysis (`mode: "source-analysis"`)
 
-`reviewWithGemini: true` là tùy chọn của request có source và đồng ý gửi mã nguồn cho provider đã cấu hình. Mặc định chỉ phân tích tĩnh. Report có `sourceDigest`, `analyzedAt`, `policy`, `reviewMode`, `coverage` và `limitations`; Gemini chỉ thêm nhận xét vào candidates đã có.
+`reviewWithGemini: true` là tùy chọn của request có source và đồng ý gửi mã nguồn cho provider đã cấu hình. Mặc định chỉ phân tích tĩnh. Report có `sourceDigest`, `analyzedAt`, `policy`, `reviewMode`, `scoreExplanation`, `coverage` và `limitations`; Gemini chỉ thêm nhận xét vào candidates đã có.
 Áp dụng khi người dùng cung cấp `sourceCode` (kèm hoặc không kèm `contractAddress`).
 
 - **Cấu trúc response:**
   1. `mode`: `"source-analysis"`
   2. `report`: Đối tượng snapshot chứa toàn bộ nội dung người dùng đang xem:
      - `targetContract`: Ngữ cảnh on-chain của contract mục tiêu trên Avalanche Fuji:
-       - Khi có `contractAddress` và RPC thành công: `status = "available"`, bắt buộc có `address`, `network: "Avalanche Fuji Testnet"`, `chainId: 43113`, `balanceAvax`, `isContract`, `bytecodeSize` (không âm), `queriedAt` (chuẩn ISO 8601 date-time), cùng các trường tùy chọn `owner`, `isPaused`.
-       - Khi RPC không kết nối được: `status = "unavailable"`, bắt buộc có `address`, `network`, `chainId`, `warning`. Không được ép buộc tạo số dư hoặc trạng thái giả mạo.
-       - Khi người dùng chỉ nhập `sourceCode`: `status = "unspecified"`.
+       - Khi có `contractAddress` và RPC thành công: `status = "available"`, `dataSource = "fuji-rpc"`, bắt buộc có `address`, `network: "Avalanche Fuji Testnet"`, `chainId: 43113`, `balanceAvax`, `isContract`, `bytecodeSize` (không âm), `queriedAt` (chuẩn ISO 8601 date-time), cùng các trường tùy chọn `owner`, `isPaused`.
+       - Khi RPC không trả được dữ liệu cốt lõi: `status = "unavailable"`, `dataSource = "fuji-rpc"`, bắt buộc có `address`, `network`, `chainId`, `attemptedAt` và `warning`. Không có `queriedAt` vì chưa có kết quả truy vấn thành công; không tạo số dư hoặc trạng thái giả.
+       - Khi người dùng chỉ nhập `sourceCode`: `status = "unspecified"`, `dataSource = "none"`; không có thời điểm RPC.
      - `summary`:
        - `totalVulnerabilities`, `criticalCount`, `highCount`, `mediumCount`, `lowCount`: Số nguyên không âm (`minimum: 0`).
        - `priorityScore`: **Số nguyên 0–100**. Backend dùng max của các finding `potential-issue`, hoặc 0 nếu không có. `scoredFindingCount` ghi số finding đóng góp.
+     - `scoreExplanation`: Giải thích công thức, số finding đóng góp, điểm report thực tế và giới hạn Asset Impact; nằm trong snapshot được hash.
      - `findings`: Danh sách phát hiện sắp xếp giảm dần theo `priorityScore`. Mỗi finding chứa:
        - `scores`: `exploitability` (number 0..100), `exposure` (number 0..100), `assetImpact` (number 0..100), và `priorityScore` (**bắt buộc integer `0..100`**).
        - `severity`: Enum `CRITICAL` (>=80), `HIGH` (60-79), `MEDIUM` (40-59), `LOW` (0-39).
@@ -68,7 +69,7 @@ Thống nhất sử dụng tên trường `targetContract` xuyên suốt giữa 
        - `liveContext`: Ngữ cảnh rủi ro on-chain của finding:
          - Bắt buộc có `status` (`available` | `unavailable` | `unspecified`).
          - Khi `unavailable` hoặc `unspecified`: Không bắt buộc bịa giá trị `fundsAtRisk` hay booleans; có thể kèm `note`.
-     - `queriedAt`: Thời điểm truy vấn dữ liệu on-chain (ISO 8601) nếu có gọi RPC.
+     - `queriedAt`: Thời điểm dữ liệu on-chain được đọc thành công. Nếu RPC lỗi, dùng `targetContract.attemptedAt`; source-only không có mốc RPC.
   3. `attestation`: Metadata ghi nhận On-Chain nằm **hoàn toàn bên ngoài `report`**:
      - `status`: `"READY_TO_ATTEST"` | `"NOT_ATTESTABLE"` | `"DISABLED"`
      - `disabledReason`: Bắt buộc khi status là `NOT_ATTESTABLE` hoặc `DISABLED` (thống nhất tên trường này trên toàn bộ hệ thống).
@@ -157,5 +158,5 @@ Thống nhất sử dụng tên trường `targetContract` xuyên suốt giữa 
 
 - Backend tính `Math.round((4E + 3X + 3A) / 10)` cho mỗi finding; `Math.round` làm tròn half-up với các điểm không âm. `summary.priorityScore` lấy giá trị lớn nhất trong findings có `review.verdict = "potential-issue"`, hoặc 0 nếu không có; `scoredFindingCount` cho biết số finding đóng góp. Điểm 0 khi không có finding đủ điều kiện không phải kết luận an toàn.
 - Asset Impact hiện dùng 0 vì tài sản chịu rủi ro chưa được xác minh, kể cả khi RPC đọc được native balance. Xem [mô hình đề xuất](data/ASSET_IMPACT_MODEL.md); mô hình phi tuyến trong tài liệu đó chưa được runtime sử dụng.
-- [mock-data.json](mock-data.json) là payload minh họa hợp schema, không phải báo cáo live hay hash có thể attest. Nguồn, trạng thái thiếu dữ liệu và thời gian truy vấn nằm ở `targetContract`; giải thích giới hạn ở `report.limitations` và `finding.liveContext.note` với response runtime.
+- [mock-data.json](mock-data.json) là payload minh họa hợp schema, không phải báo cáo live hay hash có thể attest. `targetContract.dataSource`, `status`, `queriedAt` hoặc `attemptedAt` ghi provenance và trạng thái dữ liệu. `report.scoreExplanation`, `limitations` và `finding.liveContext.note` giải thích điểm và giới hạn.
 - Registry Fuji đã được ghi tại [DEPLOYED_ADDRESSES.md](../contracts/DEPLOYED_ADDRESSES.md). Địa chỉ registry không khiến một báo cáo tự động đủ điều kiện ghi nhận; còn cần report, target, ví, chain và xác nhận người dùng.

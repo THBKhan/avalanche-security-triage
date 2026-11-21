@@ -39,6 +39,27 @@ npm run dev
 
 Open http://localhost:3001 and choose **Thử dữ liệu mẫu**. Click **Phân tích** to run the real static checks on the example source. The dashboard and API are served by the same process.
 
+### Configuration
+
+The backend reads `backend/.env` when present. For a local example, copy `backend/.env.example` to `backend/.env` before starting the server. Keep `.env` out of Git. `PORT` defaults to `3001`; `FUJI_RPC_URL` defaults to the public Fuji endpoint. Leave `LLM_PROVIDER`, `LLM_MODEL` and `LLM_API_KEY` empty for static checks, or configure all three to enable opt-in Gemini review. Set `REGISTRY_ADDRESS` to a verified Fuji registry to prepare attestation; the [deployed registry and explorer links](./contracts/DEPLOYED_ADDRESSES.md) are documented separately. `REPORT_SNAPSHOT_DIR` controls where hashed reports are saved.
+
+The **Thử dữ liệu mẫu** button shows a bundled illustrative example. `docs/mock-data.json` is a separate schema fixture for documentation and validation. A real API report marks on-chain provenance with `dataSource`, `status`, and either `queriedAt` (successful read) or `attemptedAt` (failed read); `scoreExplanation` explains the report score.
+
+### Checks
+
+Run from the repository root after installing Node.js 24 and npm:
+
+```powershell
+npm ci
+npm ci --prefix backend
+npm run validate:schema
+npm --prefix backend run build
+npm --prefix backend test
+node --test frontend/wallet.test.mjs
+```
+
+These commands validate schemas, build the backend, and run automated backend and wallet tests. They do not prove a live Gemini call, Fuji RPC read, or wallet transaction. See [demo and deployment instructions](./docs/DEMO.md) for optional live checks.
+
 ### Demo behavior (implementation contract)
 
 - An address-only request returns on-chain context, without a vulnerability analysis or `priorityScore`. **Attest on Avalanche Fuji** is disabled for this result by design; this is not a demo error. Bytecode is not equivalent to Solidity source.

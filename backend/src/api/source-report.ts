@@ -52,14 +52,17 @@ export function createSourceReportService(
       return failure(503, "AI_MODEL_UNAVAILABLE", "Gemini review is not configured.");
     }
 
-    let context: ReportContext = { status: "unspecified" };
+    let context: ReportContext = { status: "unspecified", dataSource: "none" };
     if (contractAddress) {
+      const attemptedAt = new Date().toISOString();
       try {
-        context = await reader.fetchContext(contractAddress);
+        context = { ...await reader.fetchContext(contractAddress), dataSource: "fuji-rpc" };
       } catch (error) {
         if (!isUpstreamRpcError(error)) throw error;
         context = {
           status: "unavailable",
+          dataSource: "fuji-rpc",
+          attemptedAt,
           address: contractAddress,
           network: "Avalanche Fuji Testnet",
           chainId: 43113,

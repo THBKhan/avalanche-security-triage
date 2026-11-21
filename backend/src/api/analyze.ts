@@ -54,7 +54,7 @@ export function createAnalyzeHandler(
 
       res.status(200).json({
         mode: "context-only",
-        targetContract: context,
+        targetContract: { ...context, dataSource: "fuji-rpc" },
         attestation: {
           status: "DISABLED",
           disabledReason: "Address-only request: On-chain context retrieved without source code analysis or priority score.",

@@ -35,6 +35,19 @@ function scoresMatchPolicy(payload) {
   });
 }
 
+function summaryMatchesFindings(payload) {
+  if (!payload.report) return true;
+  const { findings, summary } = payload.report;
+  const eligible = findings.filter((item) => item.review?.verdict === "potential-issue");
+  return summary.totalVulnerabilities === findings.length
+    && summary.criticalCount === findings.filter((item) => item.severity === "CRITICAL").length
+    && summary.highCount === findings.filter((item) => item.severity === "HIGH").length
+    && summary.mediumCount === findings.filter((item) => item.severity === "MEDIUM").length
+    && summary.lowCount === findings.filter((item) => item.severity === "LOW").length
+    && summary.scoredFindingCount === eligible.length
+    && summary.priorityScore === Math.max(0, ...eligible.map((item) => item.scores.priorityScore));
+}
+
 console.log("=== BẮT ĐẦU KIỂM TRA SCHEMA & FIXTURES ===");
 
 // 1. Compile Schemas
@@ -78,6 +91,7 @@ for (const file of fixtureFiles) {
     if (valid) {
       assert(true, `Fixture hợp lệ: ${file}`);
       assert(scoresMatchPolicy(data), `Điểm và severity của fixture khớp chính sách: ${file}`);
+      assert(summaryMatchesFindings(data), `Summary của fixture khớp findings và verdict: ${file}`);
     } else {
       assert(false, `Fixture vi phạm schema: ${file}\n${JSON.stringify(validateResponse.errors, null, 2)}`);
     }
@@ -92,6 +106,7 @@ try {
   assert(mock.report?.findings?.every((finding) => finding.scores.assetImpact === 0),
     "Mock không gán Asset Impact từ số dư chưa xác minh");
   assert(scoresMatchPolicy(mock), "Điểm và severity của mock khớp chính sách");
+  assert(summaryMatchesFindings(mock), "Summary của mock khớp findings và verdict");
 } catch (err) {
   assert(false, `Lỗi kiểm tra docs/mock-data.json: ${err.message}`);
 }
@@ -120,6 +135,7 @@ const validSourceOnlyResponse = {
   report: {
     targetContract: {
       status: "unspecified",
+      dataSource: "none",
     },
     summary: {
       totalVulnerabilities: 1,
@@ -127,8 +143,10 @@ const validSourceOnlyResponse = {
       highCount: 1,
       mediumCount: 0,
       lowCount: 0,
-      priorityScore: 60,
+      priorityScore: 0,
+      scoredFindingCount: 0,
     },
+    scoreExplanation: "Illustrative candidate score is 60. No reviewed potential-issue candidate contributes to a runtime report score.",
     findings: [
       {
         id: "VULN-001",
@@ -289,6 +307,18 @@ const negativeResponses = [
     },
   },
   {
+    name: "Available RPC data without source label",
+    mutate: (f) => { delete f.report.targetContract.dataSource; },
+  },
+  {
+    name: "Available RPC data claiming no source",
+    mutate: (f) => { f.report.targetContract.dataSource = "none"; },
+  },
+  {
+    name: "Source report without score explanation",
+    mutate: (f) => { delete f.report.scoreExplanation; },
+  },
+  {
     name: "Negative vulnerability count (-1)",
     mutate: (f) => {
       f.report.summary.totalVulnerabilities = -1;
@@ -307,6 +337,16 @@ const negativeResponses = [
     },
   },
 ];
+
+const unavailableFixture = JSON.parse(fs.readFileSync(path.join(fixturesDir, "source-with-rpc-error-200.json"), "utf8"));
+for (const [name, change] of [
+  ["Unavailable RPC without attemptedAt", (f) => { delete f.report.targetContract.attemptedAt; }],
+  ["Unavailable RPC claiming queriedAt", (f) => { f.report.targetContract.queriedAt = "2026-11-17T16:00:00.000Z"; }],
+]) {
+  const fixture = JSON.parse(JSON.stringify(unavailableFixture));
+  change(fixture);
+  assert(!validateResponse(fixture), `Bị từ chối chính xác: ${name}`);
+}
 
 for (const neg of negativeResponses) {
   const cloned = JSON.parse(JSON.stringify(baseFixture));

@@ -5,6 +5,7 @@
       "address": "0x5462D6Bcf9E7C030364d276d493a7F9D0388d754",
       "network": "Avalanche Fuji Testnet",
       "chainId": 43113,
+      "dataSource": "fuji-rpc",
       "balanceAvax": "125.5",
       "isContract": true,
       "bytecodeSize": 4120,
@@ -15,12 +16,14 @@
     },
     "summary": {
       "totalVulnerabilities": 2,
-      "criticalCount": 2,
-      "highCount": 0,
+      "criticalCount": 0,
+      "highCount": 2,
       "mediumCount": 0,
       "lowCount": 0,
-      "priorityScore": 97
+      "priorityScore": 0,
+      "scoredFindingCount": 0
     },
+    "scoreExplanation": "Illustrative candidates score 70 and 68 with unverified Asset Impact set to 0. No candidate has a potential-issue review verdict, so the report score is 0; this is not a safety verdict.",
     "findings": [
       {
         "id": "VULN-001",
@@ -32,10 +35,10 @@
         "scores": {
           "exploitability": 100,
           "exposure": 100,
-          "assetImpact": 90,
-          "priorityScore": 97
+          "assetImpact": 0,
+          "priorityScore": 70
         },
-        "severity": "CRITICAL",
+        "severity": "HIGH",
         "description": "Anyone can call emergencyDrain and sweep contract balance to an arbitrary address without onlyOwner restriction.",
         "evidence": [
           "Function visibility is public",
@@ -45,7 +48,7 @@
         "patchDiff": "--- a/contracts/Vault.sol\n+++ b/contracts/Vault.sol\n@@ -25,2 +25,2 @@\n-    function emergencyDrain() external {\n+    function emergencyDrain() external onlyOwner {",
         "liveContext": {
           "status": "available",
-          "fundsAtRisk": "125.5 AVAX",
+          "note": "Native balance is context only; assets at risk are unverified.",
           "isPubliclyCallable": true,
           "isPaused": false
         }
@@ -60,10 +63,10 @@
         "scores": {
           "exploitability": 95,
           "exposure": 100,
-          "assetImpact": 90,
-          "priorityScore": 95
+          "assetImpact": 0,
+          "priorityScore": 68
         },
-        "severity": "CRITICAL",
+        "severity": "HIGH",
         "description": "The function performs an external transfer of native AVAX before updating the user balance mapping, enabling cross-function reentrancy.",
         "evidence": [
           "External call payable(msg.sender).call{value: amount} before balance update",
@@ -73,7 +76,7 @@
         "patchDiff": "--- a/contracts/Vault.sol\n+++ b/contracts/Vault.sol\n@@ -15,3 +15,3 @@\n-        (bool s, ) = msg.sender.call{value: amount}(\"\");\n-        balances[msg.sender] -= amount;\n+        balances[msg.sender] -= amount;\n+        (bool s, ) = msg.sender.call{value: amount}(\"\");",
         "liveContext": {
           "status": "available",
-          "fundsAtRisk": "125.5 AVAX",
+          "note": "Native balance is context only; assets at risk are unverified.",
           "isPubliclyCallable": true,
           "isPaused": false
         }

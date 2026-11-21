@@ -73,11 +73,12 @@ slide("Kiến trúc và ranh giới tin cậy", [
     "Fuji RPC chỉ đọc balance, bytecode và owner/paused nếu contract hỗ trợ.",
     "Backend tính điểm và hash. Người dùng xác nhận giao dịch qua ví, không có private key trên server.",
 ])
-slide("Demo: từ source đến báo cáo", [
-    "1. Chạy source mẫu qua API và mở evidence của finding.",
-    "2. Xem ba điểm thành phần, trạng thái dữ liệu và diff đề xuất.",
-    "3. Address-only chỉ trả ngữ cảnh on-chain, không sinh finding hay hash.",
-])
+demo = slide("Demo dashboard: báo cáo cần rà soát", [])
+demo.shapes.add_picture(str(ROOT / "assets" / "dashboard-report-mock.png"),
+                        Inches(1.13), Inches(1.65), width=Inches(11.1))
+textbox(demo, 1.13, 6.35, 11.1, 0.5,
+        "Ảnh chụp dashboard local với dữ liệu mẫu; điểm report chưa đủ điều kiện ghi nhận trên Fuji.",
+        16, PALE)
 slide("Ghi nhận trên Avalanche Fuji", [
     "Registry AvaTriageRegistry đã deploy trên Fuji. Báo cáo đủ điều kiện mang reportHash và score nguyên.",
     "Ví yêu cầu người dùng xác nhận. Dashboard chỉ báo thành công khi receipt/event khớp snapshot.",

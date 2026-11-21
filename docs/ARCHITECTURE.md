@@ -22,6 +22,8 @@ flowchart LR
 
 Số dư AVAX là **ngữ cảnh**. Backend hiện đặt `assetImpact = 0` vì chưa xác minh được tài sản nào thực sự chịu rủi ro và chưa chứng minh source được gửi khớp bytecode của địa chỉ. Không suy ra TVL hoặc số tiền có thể mất từ `eth_getBalance`. Mô hình demo cho ngày sau nằm tại [data/ASSET_IMPACT_MODEL.md](data/ASSET_IMPACT_MODEL.md); chưa được nối vào chấm điểm runtime.
 
+Provenance trong response nằm ở `targetContract.dataSource`: `fuji-rpc` khi đã thử đọc Fuji, `none` khi chỉ có source. RPC thành công có `queriedAt`; RPC thất bại có `attemptedAt`, `status: unavailable` và `warning`. `report.scoreExplanation` ghi công thức, điểm report và giới hạn Asset Impact trong chính snapshot được hash.
+
 ## Trình tự phân tích và ghi nhận
 
 ```mermaid

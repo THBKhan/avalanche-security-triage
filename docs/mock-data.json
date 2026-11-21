@@ -5,7 +5,9 @@
       "address": "0x5462D6Bcf9E7C030364d276d493a7F9D0388d754",
       "network": "Avalanche Fuji Testnet",
       "chainId": 43113,
+      "dataSource": "fuji-rpc",
       "status": "unavailable",
+      "attemptedAt": "2026-11-17T16:00:00.000Z",
       "warning": "Không thể kết nối RPC Fuji (timeout/rate-limited). Asset Impact được đánh giá ở mức mặc định không xác minh."
     },
     "summary": {
@@ -47,6 +49,7 @@
         ]
       }
     ],
+    "scoreExplanation": "Finding score = round(0.4×75 + 0.3×100 + 0.3×0) = 60. Asset Impact is a zero placeholder because assets at risk are unverified. Report score is 0 because no finding has a potential-issue review verdict; this is not a safety verdict.",
     "limitations": [
       "Illustrative mock only; RPC data unavailable and asset exposure unverified.",
       "No finding has a model review verdict of potential-issue; report score is 0."
