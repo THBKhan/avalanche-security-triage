@@ -5,7 +5,9 @@
       "address": "0x5462D6Bcf9E7C030364d276d493a7F9D0388d754",
       "network": "Avalanche Fuji Testnet",
       "chainId": 43113,
+      "dataSource": "fuji-rpc",
       "status": "unavailable",
+      "attemptedAt": "2026-11-17T16:00:00.000Z",
       "warning": "Không thể kết nối RPC Fuji (timeout/rate-limited). Asset Impact được đánh giá ở mức mặc định không xác minh."
     },
     "summary": {
@@ -14,8 +16,10 @@
       "highCount": 1,
       "mediumCount": 0,
       "lowCount": 0,
-      "priorityScore": 70
+      "priorityScore": 0,
+      "scoredFindingCount": 0
     },
+    "scoreExplanation": "The illustrative finding scores 60 using 40/30/30 with unverified Asset Impact set to 0. The report scores 0 because no finding has a potential-issue review verdict; this is not a safety verdict.",
     "findings": [
       {
         "id": "VULN-001",
@@ -28,7 +32,7 @@
           "exploitability": 75,
           "exposure": 100,
           "assetImpact": 0,
-          "priorityScore": 70
+          "priorityScore": 60
         },
         "severity": "HIGH",
         "description": "Function uses tx.origin for authentication check, making it vulnerable to phishing attacks via malicious contracts.",

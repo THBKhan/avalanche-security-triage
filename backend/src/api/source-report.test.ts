@@ -13,9 +13,10 @@ import { createSourceReportService } from "./source-report";
 const sourceCode = "pragma solidity ^0.8.20; contract Demo {}";
 const address = "0x1111111111111111111111111111111111111111";
 const registry = "0x2222222222222222222222222222222222222222";
-const target: TargetContractContext = {
+const target: TargetContractContext & { dataSource: "fuji-rpc" } = {
   address, network: "Avalanche Fuji Testnet", chainId: 43113,
   status: "available", balanceAvax: "5", bytecodeSize: 4, isContract: true,
+  dataSource: "fuji-rpc",
   queriedAt: "2026-11-20T12:00:00Z",
 };
 const validate = createResponseValidator();
@@ -51,6 +52,9 @@ test("persists exactly the bytes used to hash the displayed report before return
     assert.equal(payload.report.summary.priorityScore, 7);
     assert.equal(payload.report.summary.scoredFindingCount, 1);
     assert.equal(payload.report.findings[0].scores.assetImpact, 0);
+    assert.equal(payload.report.targetContract.dataSource, "fuji-rpc");
+    assert.equal(payload.report.targetContract.queriedAt, target.queriedAt);
+    assert.match(payload.report.scoreExplanation, /report score is 7/);
     const { canonical, reportHash } = hashReport(payload.report);
     assert.equal(payload.attestation.reportHash, reportHash);
     assert.equal(await readFile(path.join(directory, reportHash + ".json"), "utf8"), canonical);
@@ -78,6 +82,9 @@ test("optional Gemini review preserves static facts, missing RPC stays unavailab
   assert.equal((await analyze({ sourceCode: "contract Broken {" })).status, 400);
   const local = (await analyze({ sourceCode, contractAddress: address })).body as any;
   assert.equal(local.report.targetContract.status, "unavailable");
+  assert.equal(local.report.targetContract.dataSource, "fuji-rpc");
+  assert.match(local.report.targetContract.attemptedAt, /^\d{4}-\d\d-\d\dT/);
+  assert.equal(local.report.targetContract.queriedAt, undefined);
   assert.equal(local.attestation.status, "NOT_ATTESTABLE");
   assert.equal(invocations, 0);
   const reviewed = (await analyze({ sourceCode, reviewWithGemini: true })).body as any;

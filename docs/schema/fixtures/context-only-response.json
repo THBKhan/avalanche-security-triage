@@ -4,6 +4,7 @@
     "address": "0x5462D6Bcf9E7C030364d276d493a7F9D0388d754",
     "network": "Avalanche Fuji Testnet",
     "chainId": 43113,
+    "dataSource": "fuji-rpc",
     "balanceAvax": "125.5",
     "isContract": true,
     "bytecodeSize": 4120,

@@ -27,6 +27,7 @@ Content-Type: application/json
     "address": "0x5462d6Bcf9E7C030364D276d493A7F9D0388d754",
     "network": "Avalanche Fuji Testnet",
     "chainId": 43113,
+    "dataSource": "fuji-rpc",
     "balanceAvax": "0",
     "isContract": false,
     "bytecodeSize": 0,
@@ -54,7 +55,7 @@ Content-Type: application/json
 
 HTTP 200 có `mode: "source-analysis"`. Mẫu này tạo một finding floating pragma với điểm riêng 7, điểm cấp báo cáo 0 vì chưa có verdict `potential-issue`, và `attestation.status: "NOT_ATTESTABLE"` cùng hash của snapshot đã lưu.
 
-Có thể thêm `contractAddress` để kèm ngữ cảnh Fuji. Nếu RPC lỗi, báo cáo source vẫn trả HTTP 200 với `report.targetContract.status: "unavailable"`. Trường `reviewWithGemini: true` yêu cầu người dùng đồng ý gửi source cho Gemini. Nếu chưa cấu hình, API trả 503 `AI_MODEL_UNAVAILABLE`; lỗi provider trả 502 `AI_MODEL_ERROR`. Source sai cú pháp trả 400 `INVALID_SOURCE`.
+Có thể thêm `contractAddress` để kèm ngữ cảnh Fuji. Nếu RPC lỗi, báo cáo source vẫn trả HTTP 200 với `report.targetContract.status: "unavailable"`, `dataSource: "fuji-rpc"` và `attemptedAt`, không có `queriedAt`. Report có `scoreExplanation` ghi lý do điểm cấp báo cáo. Trường `reviewWithGemini: true` yêu cầu người dùng đồng ý gửi source cho Gemini. Nếu chưa cấu hình, API trả 503 `AI_MODEL_UNAVAILABLE`; lỗi provider trả 502 `AI_MODEL_ERROR`. Source sai cú pháp trả 400 `INVALID_SOURCE`.
 
 ## 3. Các Trường Hợp Lỗi Phổ Biến
 

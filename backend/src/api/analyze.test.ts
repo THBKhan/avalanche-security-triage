@@ -41,6 +41,9 @@ test("POST /api/analyze: Address-only thành công, đúng response schema và a
   assert.equal(res.body.targetContract.address, "0x5462d6Bcf9E7C030364D276d493A7F9D0388d754");
   assert.equal(res.body.targetContract.network, "Avalanche Fuji Testnet");
   assert.equal(res.body.targetContract.chainId, 43113);
+  assert.equal(res.body.targetContract.dataSource, "fuji-rpc");
+  assert.match(res.body.targetContract.queriedAt, /^\d{4}-\d\d-\d\dT/);
+  assert.equal(res.body.targetContract.attemptedAt, undefined);
   assert.equal(res.body.targetContract.balanceAvax, "2");
   assert.equal(res.body.targetContract.isContract, false);
   assert.equal(res.body.targetContract.bytecodeSize, 0);

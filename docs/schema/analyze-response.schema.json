@@ -254,6 +254,16 @@
           "type": "string",
           "format": "date-time"
         },
+        "attemptedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Time a Fuji RPC read was attempted when it did not return usable core data."
+        },
+        "dataSource": {
+          "type": "string",
+          "enum": ["fuji-rpc", "none"],
+          "description": "fuji-rpc means an Avalanche Fuji RPC read was requested; status says whether it succeeded. none means no on-chain read was requested."
+        },
         "status": {
           "type": "string",
           "enum": [
@@ -267,7 +277,8 @@
         }
       },
       "required": [
-        "status"
+        "status",
+        "dataSource"
       ],
       "allOf": [
         {
@@ -279,6 +290,7 @@
             }
           },
           "then": {
+            "properties": { "dataSource": { "const": "fuji-rpc" } },
             "required": [
               "address",
               "network",
@@ -287,7 +299,8 @@
               "isContract",
               "bytecodeSize",
               "queriedAt"
-            ]
+            ],
+            "not": { "required": ["attemptedAt"] }
           }
         },
         {
@@ -299,12 +312,25 @@
             }
           },
           "then": {
+            "properties": { "dataSource": { "const": "fuji-rpc" } },
             "required": [
               "address",
               "network",
               "chainId",
-              "warning"
-            ]
+              "warning",
+              "attemptedAt"
+            ],
+            "not": { "required": ["queriedAt"] }
+          }
+        },
+        {
+          "if": { "properties": { "status": { "const": "unspecified" } } },
+          "then": {
+            "properties": { "dataSource": { "const": "none" } },
+            "not": { "anyOf": [
+              { "required": ["queriedAt"] },
+              { "required": ["attemptedAt"] }
+            ] }
           }
         }
       ],
@@ -383,6 +409,11 @@
         "policy": {
           "type": "string"
         },
+        "scoreExplanation": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable explanation of per-finding and report-level scoring, including missing Asset Impact data."
+        },
         "reviewMode": {
           "enum": [
             "static",
@@ -421,7 +452,8 @@
       "required": [
         "targetContract",
         "summary",
-        "findings"
+        "findings",
+        "scoreExplanation"
       ],
       "additionalProperties": false
     },

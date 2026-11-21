@@ -4,13 +4,15 @@ import type { TriageReviewResult } from "./triage/types";
 import type { TargetContractContext } from "../rpc/context";
 import { RULES_CATALOG } from "./rules/catalog";
 
-export type ReportContext = TargetContractContext | {
+export type ReportContext = (TargetContractContext & { dataSource: "fuji-rpc" }) | {
   status: "unavailable";
+  dataSource: "fuji-rpc";
+  attemptedAt: string;
   address: string;
   network: "Avalanche Fuji Testnet";
   chainId: 43113;
   warning: string;
-} | { status: "unspecified" };
+} | { status: "unspecified"; dataSource: "none" };
 
 export const SCORING_POLICY = "demo-v2-half-up-max-potential-issue";
 
@@ -85,6 +87,7 @@ export function buildReport(
     sourceDigest: keccak256(stringToHex(sourceCode)),
     analyzedAt: new Date().toISOString(),
     policy: SCORING_POLICY,
+    scoreExplanation: `Each finding uses round(0.4*Exploitability + 0.3*Exposure + 0.3*Asset Impact). Asset Impact is 0 because assets at risk are unverified. ${scoredFindings.length} potential-issue finding(s) contribute; report score is ${scoredFindings[0]?.scores.priorityScore ?? 0}, the highest eligible score. A report score of 0 is not a safety verdict.`,
     reviewMode: review ? "gemini" : "static",
     limitations: [
       "Scores use half-up rounding. The report score is the highest candidate marked potential-issue, or 0 if none qualify.",

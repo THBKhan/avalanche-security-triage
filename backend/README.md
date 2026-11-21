@@ -176,6 +176,7 @@ Module `src/rpc/context.ts` cung cấp hàm đọc trạng thái on-chain trên 
         "address": "0x5462d6Bcf9E7C030364D276d493A7F9D0388d754",
         "network": "Avalanche Fuji Testnet",
         "chainId": 43113,
+        "dataSource": "fuji-rpc",
         "balanceAvax": "0",
         "isContract": false,
         "bytecodeSize": 0,
